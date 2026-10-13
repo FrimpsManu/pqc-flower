@@ -77,16 +77,21 @@ Each attack runs against both versions.
 
 ## Timeline
 
-| Dates | Milestone |
-|---|---|
-| Oct 13–14 | ✅ Repo, map of Flower's crypto, first PQC benchmarks. Classical baseline running if possible. |
-| **Oct 15** | **Progress report due (2 pages)** |
-| Oct 16–26 | Classical baseline complete: farms + dataset + Flower simulation |
-| Oct 27–Nov 9 | PQC swaps: TLS hybrid, ML-DSA login, ML-KEM SecAgg+ |
-| Nov 10–16 | Signed model updates (Topic 3) |
-| Nov 17–23 | Attack demos 1 and 2 (D3) |
-| Nov 24–Dec 1 | Benchmarks (D2), charts, threat table |
-| Early Dec (date TBC) | Final report + live demo |
+**Final due Nov 17. Our target: finished Nov 15**, keeping 2 days of buffer. That leaves about 4.5 weeks after the progress report, so the three roles run in parallel.
+
+| Dates | Augustine (PQC integration) | David (signatures + attacks) | Kimora (farms + benchmarks) |
+|---|---|---|---|
+| Oct 13–14 | ✅ Repo, crypto map, PQC benchmarks | | Classical baseline started |
+| **Oct 15** | **Progress report due (2 pages): all** | | |
+| Oct 16–22 | Hybrid PQC TLS (X25519MLKEM768) | Design signed-update format (round + timestamp + update) | Classical baseline complete: dataset, farms, simulation |
+| Oct 23–29 | ML-DSA farm login | Signed model updates (Topic 3) | Benchmark harness (round time, bytes, handshake) |
+| Oct 30–Nov 5 | ML-KEM in SecAgg+ *(stretch, see below)* | Attack 1 (tampered update) + Attack 2 (simulated quantum) | Run classical benchmarks |
+| Nov 6–10 | Integration: one config switch, classical ↔ PQC | Attack demo scripts polished | PQC benchmarks, charts, threat table |
+| Nov 11–14 | **Final report + demo rehearsal: all** | | |
+| **Nov 15** | **Done (our target)** | | |
+| Nov 17 | Official deadline | | |
+
+**Scope guard:** if we fall behind by Nov 5, ML-KEM in SecAgg+ is the first thing to cut. The deliverables still hold with PQC TLS + ML-DSA login + signed updates, and we would describe SecAgg+ as future work.
 
 ## Suggested split
 
