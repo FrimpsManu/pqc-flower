@@ -36,3 +36,4 @@ def main(grid: Grid, context: Context) -> None:
         evaluate_fn=central_eval,
     )
     print(result)
+    print("PQCFLOWER_DONE")

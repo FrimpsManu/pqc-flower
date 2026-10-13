@@ -1,0 +1,16 @@
+[round  0] test_acc=0.036 test_loss=3.091 round_time=0.00s
+[round  1] test_acc=0.357 test_loss=2.088 round_time=9.24s
+[round  2] test_acc=0.582 test_loss=1.563 round_time=6.20s
+[round  3] test_acc=0.680 test_loss=1.288 round_time=9.20s
+[round  4] test_acc=0.739 test_loss=1.106 round_time=9.24s
+[round  5] test_acc=0.789 test_loss=0.980 round_time=6.21s
+[round  6] test_acc=0.811 test_loss=0.890 round_time=12.31s
+[round  7] test_acc=0.845 test_loss=0.820 round_time=9.21s
+[round  8] test_acc=0.857 test_loss=0.760 round_time=9.24s
+[round  9] test_acc=0.864 test_loss=0.713 round_time=12.23s
+[round 10] test_acc=0.873 test_loss=0.670 round_time=6.24s
+[round 11] test_acc=0.895 test_loss=0.636 round_time=12.26s
+[round 12] test_acc=0.900 test_loss=0.606 round_time=9.20s
+[round 13] test_acc=0.900 test_loss=0.578 round_time=9.24s
+[round 14] test_acc=0.907 test_loss=0.555 round_time=12.24s
+[round 15] test_acc=0.909 test_loss=0.535 round_time=9.24s

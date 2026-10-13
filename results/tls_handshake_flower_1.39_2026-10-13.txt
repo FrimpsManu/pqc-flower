@@ -1,0 +1,8 @@
+# TLS key exchange between a Flower 1.39.0 SuperNode (farm) and SuperLink, both grpcio 1.84.0.
+# Captured with explore/tls_keyshare_sniffer.py relaying the farm's gRPC connection.
+farm offers (supported_groups): X25519MLKEM768, X25519, secp256r1, secp384r1, secp521r1
+farm sends key shares for: X25519MLKEM768 (1216 B), X25519 (32 B)
+server picks: X25519MLKEM768 (key share 1120 B)
+# Certificates (server authentication) remain classical: ECDSA P-384 in our setup.
+# Also verified during the classical run: plaintext gRPC to the Fleet API is rejected;
+# a SuperNode with an unregistered ECDSA key fails activation (exit code 305).

@@ -24,7 +24,8 @@ That sentence makes three commitments:
 
 | Layer | Flower today | Our version |
 |---|---|---|
-| Farm ↔ server connection | TLS 1.3, classical key exchange | TLS 1.3 with hybrid **X25519 + ML-KEM-768** |
+| Farm ↔ server key exchange | TLS 1.3, **already hybrid X25519 + ML-KEM-768** with grpcio 1.84 (found Oct 13) | Keep, pin and measure it; compare with classical X25519 |
+| Farm ↔ server certificates | ECDSA P-384 | ML-DSA certificates if gRPC supports them, else a documented limitation |
 | Farm login (node authentication) | ECDSA P-384 | **ML-DSA-65** |
 | Secure aggregation (SecAgg+) | ECDH P-384 | **ML-KEM-768** |
 
@@ -50,7 +51,7 @@ That sentence makes three commitments:
 | Threat | Classical Flower | Our PQC Flower |
 |---|---|---|
 | Quantum computer recovers private keys (Shor's algorithm) | ❌ Broken | ✅ Resists |
-| Harvest-now, decrypt-later of recorded traffic | ❌ Exposed | ✅ Protected |
+| Harvest-now, decrypt-later of recorded traffic | ✅ with grpcio ≥ 1.84 (hybrid by default); ❌ with older grpcio | ✅ Protected, pinned |
 | Forged farm identity | ❌ With a quantum computer | ✅ |
 | Tampered / forged model update | ❌ No update signatures | ✅ Rejected |
 | Replay of an old update | Partly (timestamp window) | ✅ If signature covers round + timestamp |
@@ -83,7 +84,7 @@ Each attack runs against both versions.
 |---|---|---|---|
 | Oct 13–14 | ✅ Repo, crypto map, PQC benchmarks | | Classical baseline started |
 | **Oct 15** | **Progress report due (2 pages): all** | | |
-| Oct 16–22 | Hybrid PQC TLS (X25519MLKEM768) | Design signed-update format (round + timestamp + update) | Classical baseline complete: dataset, farms, simulation |
+| Oct 16–22 | ✅ Classical TLS + ECDSA login baseline (done Oct 13); TLS: classical vs hybrid comparison, PQC certificates check | Design signed-update format (round + timestamp + update) | ✅ Baseline done Oct 13; start benchmark harness |
 | Oct 23–29 | ML-DSA farm login | Signed model updates (Topic 3) | Benchmark harness (round time, bytes, handshake) |
 | Oct 30–Nov 5 | ML-KEM in SecAgg+ *(stretch, see below)* | Attack 1 (tampered update) + Attack 2 (simulated quantum) | Run classical benchmarks |
 | Nov 6–10 | Integration: one config switch, classical ↔ PQC | Attack demo scripts polished | PQC benchmarks, charts, threat table |
