@@ -1,0 +1,4 @@
+flwr[simulation]==1.39.0
+# Flower pins cryptography<47, but ML-KEM / ML-DSA only exist in newer releases.
+# We override the pin; Flower 1.39.0 still imports and runs (to be verified end-to-end).
+cryptography==50.0.2

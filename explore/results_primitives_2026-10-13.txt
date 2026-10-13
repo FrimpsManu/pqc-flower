@@ -1,0 +1,8 @@
+algorithm              keygen us      op1 us      op2 us      pk B     out B
+ECDSA P-384 (Flower)        44.4       367.8       444.1        97       102  sign / verify 1MB
+MLDSA44                     39.6      1102.6       922.4      1312      2420  sign / verify 1MB
+MLDSA65                     74.1      1264.3       942.0      1952      3309  sign / verify 1MB
+MLDSA87                     99.5      1398.5       993.3      2592      4627  sign / verify 1MB
+ECDH P-384 (Flower)         45.1       100.2         0.0        97        97  exchange / - 
+MLKEM768                    36.3         8.6        13.1      1184      1088  encaps / decaps
+MLKEM1024                   51.7        11.7        17.1      1568      1568  encaps / decaps
