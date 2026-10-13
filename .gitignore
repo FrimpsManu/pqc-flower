@@ -4,3 +4,7 @@ __pycache__/
 *.pem
 *.key
 .DS_Store
+.flwr/
+logs/
+data/*.csv
+*.egg-info/

@@ -42,17 +42,29 @@ We take [Flower](https://github.com/flwrlabs/flower), an open-source federated l
 
 Takeaway: ML-KEM is about 10× faster than Flower's ECDH but sends about 12× more bytes. ML-DSA signs a 1 MB update about 3× slower than ECDSA, with 23–45× larger signatures. Both are small next to a model update of several MB.
 
-## Setup
+## Classical baseline (2026-10-13)
+
+Flower deployment mode on one laptop: one SuperLink (server) and 3 SuperNodes (farms) talking over real gRPC. Simulation mode skips the network, so it can't exercise TLS or node auth.
+
+- **Data:** crop recommendation dataset, 2,200 samples, 7 features (soil N/P/K, temperature, humidity, pH, rainfall), 22 crops. 20% is held out as a test set. The rest is split non-IID across farms (Dirichlet α = 0.5), so each farm has 18–22 of the 22 crops.
+- **Model:** softmax regression in NumPy, trained with FedAvg (20 local epochs, lr 1.0).
+- **Result:** test accuracy 3.6% → **90.7% after 15 rounds**, matching 90.5% for pooled (non-federated) training. Mean round time is 9.8 s, almost all Flower scheduling/polling. See `results/baseline_classical_insecure_3farms_2026-10-13.txt`.
+- **Note:** Flower installs each run's dependencies in a separate environment (with `cryptography` 46). The PQC version must declare `cryptography>=50` in `pyproject.toml`.
+
+## Setup and run
 
 ```bash
 uv venv -p 3.12 .venv
-uv pip install -p .venv -r requirements.txt
+uv pip install -p .venv -r requirements.txt -e .
+scripts/get_data.sh
+scripts/run_local.sh 3 15          # 3 farms, 15 rounds (Ctrl-C after the last round)
 .venv/bin/python explore/bench_primitives.py
 ```
 
 ## Next steps
 
-- [ ] Run a baseline Flower simulation with several farms (classical)
+- [x] Run a baseline Flower deployment with several farms (classical, no TLS yet)
+- [ ] Add classical TLS + node auth to the baseline (the real "before" for comparison)
 - [ ] Settle the gRPC client group question; enable X25519MLKEM768 on both ends
 - [ ] Swap node auth ECDSA → ML-DSA
 - [ ] Swap SecAgg+ ECDH → ML-KEM
