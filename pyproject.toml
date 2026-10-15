@@ -30,3 +30,5 @@ num-farms = 3
 local-epochs = 20
 learning-rate = 1.0
 dirichlet-alpha = 0.5
+sign-updates = false   # farms sign each model update with ML-DSA-65; server verifies
+attack-farm = -1       # simulated attacker tampers this farm's update in transit (-1 = no attack)
