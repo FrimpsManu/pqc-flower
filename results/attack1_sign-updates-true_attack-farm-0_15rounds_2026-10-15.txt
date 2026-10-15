@@ -1,0 +1,62 @@
+[setup] farms=3 sign-updates=True attack=tamper farm 0
+[round  0] test_acc=0.036 test_loss=3.091 round_time=0.00s
+[round  1] farm 1: ML-DSA signature valid, accepted
+[round  1] farm 2: ML-DSA signature valid, accepted
+[round  1] farm 0: ML-DSA signature INVALID, REJECTED
+[round  1] test_acc=0.407 test_loss=2.160 round_time=6.25s
+[round  2] farm 1: ML-DSA signature valid, accepted
+[round  2] farm 2: ML-DSA signature valid, accepted
+[round  2] farm 0: ML-DSA signature INVALID, REJECTED
+[round  2] test_acc=0.450 test_loss=1.706 round_time=9.21s
+[round  3] farm 2: ML-DSA signature valid, accepted
+[round  3] farm 1: ML-DSA signature valid, accepted
+[round  3] farm 0: ML-DSA signature INVALID, REJECTED
+[round  3] test_acc=0.532 test_loss=1.416 round_time=9.20s
+[round  4] farm 2: ML-DSA signature valid, accepted
+[round  4] farm 0: ML-DSA signature INVALID, REJECTED
+[round  4] farm 1: ML-DSA signature valid, accepted
+[round  4] test_acc=0.589 test_loss=1.265 round_time=9.21s
+[round  5] farm 1: ML-DSA signature valid, accepted
+[round  5] farm 2: ML-DSA signature valid, accepted
+[round  5] farm 0: ML-DSA signature INVALID, REJECTED
+[round  5] test_acc=0.620 test_loss=1.149 round_time=9.22s
+[round  6] farm 2: ML-DSA signature valid, accepted
+[round  6] farm 0: ML-DSA signature INVALID, REJECTED
+[round  6] farm 1: ML-DSA signature valid, accepted
+[round  6] test_acc=0.673 test_loss=1.045 round_time=12.25s
+[round  7] farm 2: ML-DSA signature valid, accepted
+[round  7] farm 0: ML-DSA signature INVALID, REJECTED
+[round  7] farm 1: ML-DSA signature valid, accepted
+[round  7] test_acc=0.705 test_loss=0.963 round_time=6.19s
+[round  8] farm 0: ML-DSA signature INVALID, REJECTED
+[round  8] farm 2: ML-DSA signature valid, accepted
+[round  8] farm 1: ML-DSA signature valid, accepted
+[round  8] test_acc=0.709 test_loss=0.921 round_time=12.24s
+[round  9] farm 2: ML-DSA signature valid, accepted
+[round  9] farm 0: ML-DSA signature INVALID, REJECTED
+[round  9] farm 1: ML-DSA signature valid, accepted
+[round  9] test_acc=0.745 test_loss=0.857 round_time=9.20s
+[round 10] farm 1: ML-DSA signature valid, accepted
+[round 10] farm 0: ML-DSA signature INVALID, REJECTED
+[round 10] farm 2: ML-DSA signature valid, accepted
+[round 10] test_acc=0.770 test_loss=0.818 round_time=9.22s
+[round 11] farm 2: ML-DSA signature valid, accepted
+[round 11] farm 0: ML-DSA signature INVALID, REJECTED
+[round 11] farm 1: ML-DSA signature valid, accepted
+[round 11] test_acc=0.802 test_loss=0.779 round_time=12.24s
+[round 12] farm 2: ML-DSA signature valid, accepted
+[round 12] farm 1: ML-DSA signature valid, accepted
+[round 12] farm 0: ML-DSA signature INVALID, REJECTED
+[round 12] test_acc=0.793 test_loss=0.756 round_time=9.27s
+[round 13] farm 0: ML-DSA signature INVALID, REJECTED
+[round 13] farm 2: ML-DSA signature valid, accepted
+[round 13] farm 1: ML-DSA signature valid, accepted
+[round 13] test_acc=0.814 test_loss=0.722 round_time=12.24s
+[round 14] farm 2: ML-DSA signature valid, accepted
+[round 14] farm 0: ML-DSA signature INVALID, REJECTED
+[round 14] farm 1: ML-DSA signature valid, accepted
+[round 14] test_acc=0.820 test_loss=0.691 round_time=9.20s
+[round 15] farm 1: ML-DSA signature valid, accepted
+[round 15] farm 0: ML-DSA signature INVALID, REJECTED
+[round 15] farm 2: ML-DSA signature valid, accepted
+[round 15] test_acc=0.825 test_loss=0.668 round_time=9.22s

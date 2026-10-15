@@ -1,0 +1,62 @@
+[setup] farms=3 sign-updates=False attack=tamper farm 0
+[round  0] test_acc=0.036 test_loss=3.091 round_time=0.00s
+[round  1] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  1] farm 2: accepted, unsigned
+[round  1] farm 1: accepted, unsigned
+[round  1] test_acc=0.195 test_loss=5.727 round_time=9.28s
+[round  2] farm 1: accepted, unsigned
+[round  2] farm 2: accepted, unsigned
+[round  2] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  2] test_acc=0.052 test_loss=6.173 round_time=6.24s
+[round  3] farm 2: accepted, unsigned
+[round  3] farm 1: accepted, unsigned
+[round  3] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  3] test_acc=0.159 test_loss=6.192 round_time=9.24s
+[round  4] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  4] farm 2: accepted, unsigned
+[round  4] farm 1: accepted, unsigned
+[round  4] test_acc=0.052 test_loss=6.378 round_time=6.21s
+[round  5] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  5] farm 1: accepted, unsigned
+[round  5] farm 2: accepted, unsigned
+[round  5] test_acc=0.105 test_loss=6.292 round_time=9.24s
+[round  6] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  6] farm 2: accepted, unsigned
+[round  6] farm 1: accepted, unsigned
+[round  6] test_acc=0.070 test_loss=6.385 round_time=9.26s
+[round  7] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  7] farm 2: accepted, unsigned
+[round  7] farm 1: accepted, unsigned
+[round  7] test_acc=0.132 test_loss=6.325 round_time=6.22s
+[round  8] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  8] farm 2: accepted, unsigned
+[round  8] farm 1: accepted, unsigned
+[round  8] test_acc=0.080 test_loss=6.403 round_time=9.25s
+[round  9] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round  9] farm 1: accepted, unsigned
+[round  9] farm 2: accepted, unsigned
+[round  9] test_acc=0.098 test_loss=6.363 round_time=6.21s
+[round 10] farm 1: accepted, unsigned
+[round 10] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round 10] farm 2: accepted, unsigned
+[round 10] test_acc=0.064 test_loss=6.421 round_time=9.24s
+[round 11] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round 11] farm 2: accepted, unsigned
+[round 11] farm 1: accepted, unsigned
+[round 11] test_acc=0.100 test_loss=6.362 round_time=9.23s
+[round 12] farm 2: accepted, unsigned
+[round 12] farm 1: accepted, unsigned
+[round 12] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round 12] test_acc=0.093 test_loss=6.416 round_time=6.21s
+[round 13] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round 13] farm 1: accepted, unsigned
+[round 13] farm 2: accepted, unsigned
+[round 13] test_acc=0.102 test_loss=6.390 round_time=9.23s
+[round 14] farm 1: accepted, unsigned
+[round 14] farm 2: accepted, unsigned
+[round 14] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round 14] test_acc=0.093 test_loss=6.386 round_time=6.21s
+[round 15] farm 2: accepted, unsigned
+[round 15] farm 0: accepted, unsigned  <- TAMPERED, accepted (no signature check)
+[round 15] farm 1: accepted, unsigned
+[round 15] test_acc=0.100 test_loss=6.374 round_time=9.24s
