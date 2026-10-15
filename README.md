@@ -11,6 +11,12 @@ We take [Flower](https://github.com/flwrlabs/flower), an open-source federated l
 
 **Network protocol:** gRPC over TLS 1.3
 
+## Architecture
+
+![System architecture](docs/architecture.svg)
+
+The full design, including the step-by-step flow of one training round and a map of the code, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Where Flower uses classical cryptography (Flower 1.39.0)
 
 | Layer | Flower today | File | PQC replacement |
