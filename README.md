@@ -55,11 +55,31 @@ Flower deployment mode on one laptop: one SuperLink (server) and 3 SuperNodes (f
 
 `scripts/run_local.sh classical 3 15`: TLS on the gRPC link, and every farm's ECDSA P-384 key registered on the SuperLink. Test accuracy **90.9% after 15 rounds**, mean round time ~9.4 s, the same as without security. Verified during the run: plaintext gRPC is rejected, and a farm with an unregistered key is refused (exit code 305).
 
+## Attack 1 demo: tampered model update (2026-10-15)
+
+Farms can sign every model update with **ML-DSA-65** (`sign-updates = true`). The signature covers the round number, the farm id and the weights. The server (`SignedFedAvg`) drops any update whose signature fails. A simulated attacker (`attack-farm = 0`) alters farm 0's update in transit, flipping and amplifying its weights. It cannot re-sign the update without farm 0's private key.
+
+All runs use 3 farms, 15 rounds, TLS 1.3 + ECDSA farm login (`results/attack1_*`):
+
+| Run | Final test accuracy |
+|---|---|
+| Signed updates, no attack | 90.7% (signing costs no accuracy) |
+| Attack, **unsigned** (how Flower behaves today) | **10.0%**, model ruined |
+| Attack, **ML-DSA signed** | **82.5%**, tampered update rejected every round; the model trains on the 2 honest farms |
+
+Attack 1 is stopped by *signing* updates; any secure signature would do. The post-quantum part, a simulated quantum attacker forging a farm's classical key, is Attack 2.
+
+```bash
+scripts/demo_attack.sh 8    # same attack, unsigned then signed (recording: demo/attack1_demo.gif)
+```
+
+![Attack 1 demo](demo/attack1_demo.gif)
+
 ## Setup and run
 
 ```bash
 uv venv -p 3.12 .venv
-uv pip install -p .venv -r requirements.txt --override overrides.txt -e .
+uv pip install -p .venv -r requirements.txt --override overrides.txt -e .   # or: uv sync
 scripts/get_data.sh
 scripts/run_local.sh classical 3 15   # TLS + ECDSA login, 3 farms, 15 rounds (or: insecure)
 scripts/stop_all.sh                  # stop leftover Flower processes if a run reports busy ports
@@ -74,5 +94,6 @@ scripts/stop_all.sh                  # stop leftover Flower processes if a run r
 - [ ] Decide the classical reference for TLS (pin an older grpcio for a true classical X25519 baseline?)
 - [ ] Swap node auth ECDSA → ML-DSA
 - [ ] Swap SecAgg+ ECDH → ML-KEM
-- [ ] Sign model updates with ML-DSA; demo a tampered update being rejected
+- [x] Sign model updates with ML-DSA; demo a tampered update being rejected (Attack 1)
+- [ ] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
 - [ ] Measure round time, bandwidth and handshake cost, classical vs PQC

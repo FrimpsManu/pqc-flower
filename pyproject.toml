@@ -7,7 +7,12 @@ name = "pqcflower"
 version = "0.1.0"
 description = "Quantum-safe federated learning for smart agriculture"
 license = "Apache-2.0"
-dependencies = ["flwr==1.39.0", "numpy"]
+dependencies = ["flwr==1.39.0", "numpy", "cryptography>=50.0.2"]
+
+[tool.uv]
+# Flower 1.39.0 pins cryptography<47, but ML-KEM / ML-DSA only exist from cryptography 50.
+# Without this, `uv sync` / `uv run` would silently downgrade it.
+override-dependencies = ["cryptography==50.0.2"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["pqcflower"]
@@ -25,3 +30,5 @@ num-farms = 3
 local-epochs = 20
 learning-rate = 1.0
 dirichlet-alpha = 0.5
+sign-updates = false   # farms sign each model update with ML-DSA-65; server verifies
+attack-farm = -1       # simulated attacker tampers this farm's update in transit (-1 = no attack)

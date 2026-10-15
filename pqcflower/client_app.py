@@ -1,9 +1,9 @@
 """Farm side (ClientApp): train on this farm's private crop data."""
 
-from flwr.app import ArrayRecord, Context, Message, MetricRecord, RecordDict
+from flwr.app import ArrayRecord, ConfigRecord, Context, Message, MetricRecord, RecordDict
 from flwr.clientapp import ClientApp
 
-from pqcflower import task
+from pqcflower import signing, task
 
 app = ClientApp()
 
@@ -30,6 +30,12 @@ def train(msg: Message, context: Context) -> Message:
         "arrays": ArrayRecord(model),
         "metrics": MetricRecord({"train_loss": loss, "train_acc": acc, "num-examples": len(y)}),
     })
+    farm_id = int(context.node_config["partition-id"])
+    auth = ConfigRecord({"farm-id": farm_id})
+    if context.run_config["sign-updates"]:
+        server_round = int(msg.content["config"]["server-round"])
+        auth["signature"] = signing.sign_update(signing.load_private_key(farm_id), server_round, farm_id, model)
+    content["auth"] = auth
     return Message(content=content, reply_to=msg)
 
 
