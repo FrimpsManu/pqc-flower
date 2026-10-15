@@ -62,6 +62,7 @@ uv venv -p 3.12 .venv
 uv pip install -p .venv -r requirements.txt --override overrides.txt -e .
 scripts/get_data.sh
 scripts/run_local.sh classical 3 15   # TLS + ECDSA login, 3 farms, 15 rounds (or: insecure)
+scripts/stop_all.sh                  # stop leftover Flower processes if a run reports busy ports
 .venv/bin/python explore/bench_primitives.py
 ```
 
