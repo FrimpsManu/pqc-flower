@@ -1,0 +1,3 @@
+# Flower 1.39.0 pins cryptography<47, but ML-KEM / ML-DSA only exist from cryptography 50.
+# Install with: uv pip install -r requirements.txt --override overrides.txt
+cryptography==50.0.2

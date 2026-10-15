@@ -24,7 +24,7 @@ We take [Flower](https://github.com/flwrlabs/flower), an open-source federated l
 ## Findings so far (2026-10-13)
 
 - **Node auth does not cover the model update.** The SuperNode signs only the current timestamp. A forged or tampered update is not detected by this signature, so topic 3 adds a protection Flower does not have today.
-- **PQC primitives are available in the library Flower already uses.** `cryptography` 50.0.2 (OpenSSL 3.5) has `mlkem` (768, 1024) and `mldsa` (44, 65, 87). Flower pins `cryptography<47`, so we override the pin.
+- **PQC primitives are available in the library Flower already uses.** `cryptography` 50.0.2 (OpenSSL 3.5) has `mlkem` (768, 1024) and `mldsa` (44, 65, 87). Flower pins `cryptography<47`, so we override the pin (`overrides.txt`).
 - **Flower's TLS key exchange is already hybrid post-quantum.** With grpcio 1.84 on both ends, a farm offers X25519MLKEM768 first and the SuperLink picks it (`results/tls_handshake_flower_1.39_2026-10-13.txt`). This comes from gRPC's bundled TLS library, not from Flower. Server *authentication* (certificates) is still classical ECDSA, and older grpcio versions fall back to classical X25519.
 - **Upstream:** Flower has no issues or PRs about post-quantum crypto. The closest is [#6896](https://github.com/flwrlabs/flower/issues/6896) (mTLS node auth, classical).
 
@@ -59,7 +59,7 @@ Flower deployment mode on one laptop: one SuperLink (server) and 3 SuperNodes (f
 
 ```bash
 uv venv -p 3.12 .venv
-uv pip install -p .venv -r requirements.txt -e .
+uv pip install -p .venv -r requirements.txt --override overrides.txt -e .
 scripts/get_data.sh
 scripts/run_local.sh classical 3 15   # TLS + ECDSA login, 3 farms, 15 rounds (or: insecure)
 .venv/bin/python explore/bench_primitives.py
