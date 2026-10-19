@@ -10,6 +10,12 @@ license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = ["flwr==1.39.0", "numpy", "cryptography>=50.0.2"]
 
+[project.scripts]
+# Flower's commands with ML-DSA-65 farm login (pqcflower/pqc_login.py)
+pqc-flower-superlink = "pqcflower.cli:superlink"
+pqc-flower-supernode = "pqcflower.cli:supernode"
+pqc-flwr = "pqcflower.cli:flwr"
+
 [tool.uv]
 # Flower 1.39.0 pins cryptography<47, but ML-KEM / ML-DSA only exist from cryptography 50.
 # Without this, `uv sync` / `uv run` would silently downgrade it.
