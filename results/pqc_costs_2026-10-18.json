@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-18",
+  "machine": "arm64",
+  "login": {
+    "ECDSA P-384": {
+      "sign_us": 67.91698979213834,
+      "verify_us": 151.08397928997874,
+      "public_key_B": 215,
+      "signature_B": 102,
+      "headers_on_wire_B": 516
+    },
+    "ML-DSA-65": {
+      "sign_us": 289.02103076688945,
+      "verify_us": 67.290966399014,
+      "public_key_B": 2726,
+      "signature_B": 3309,
+      "headers_on_wire_B": 8140
+    }
+  },
+  "updates": {
+    "update_B": 1408,
+    "signature_B": 3309,
+    "sign_us": 291.95850947871804,
+    "verify_us": 66.49998249486089,
+    "overhead_pct": 235.01420454545453,
+    "sign_ms_1MB": 1.1372085136827081,
+    "sign_ms_10MB": 9.504416986601427
+  },
+  "tls": {
+    "X25519": {
+      "median_ms": 7.24054200691171,
+      "client_sent_B": 395,
+      "client_received_B": 833,
+      "negotiated": "X25519"
+    },
+    "X25519MLKEM768": {
+      "median_ms": 7.268645480507985,
+      "client_sent_B": 1573,
+      "client_received_B": 1922,
+      "negotiated": "X25519MLKEM768"
+    }
+  },
+  "requests": {
+    "total": 561,
+    "farms": 3,
+    "rounds": 5,
+    "per_farm_per_round": 37.4,
+    "run_seconds": 49.31308799999533,
+    "ECDSA P-384_KB_per_farm_round": 18.846093749999998,
+    "ML-DSA-65_KB_per_farm_round": 297.30078125
+  }
+}
