@@ -20,6 +20,9 @@ from flwr.supercore.primitives import asymmetric
 
 KEY_DIR = Path(os.environ.get("PQC_LOGIN_KEY_DIR", Path(__file__).resolve().parent.parent / "credentials" / "farm-keys-mldsa"))
 
+# Benchmarks only: if set, the SuperLink appends one line per verified login (= per farm request).
+_COUNT_FILE = os.environ.get("PQC_LOGIN_COUNT_FILE")
+
 _original_sign = asymmetric.sign_message
 _original_verify = asymmetric.verify_signature
 _original_nist_check = asymmetric.uses_nist_ec_curve
@@ -34,6 +37,9 @@ def sign_message(private_key, message: bytes) -> bytes:
 
 
 def verify_signature(public_key, message: bytes, signature: bytes) -> bool:
+    if _COUNT_FILE:
+        with open(_COUNT_FILE, "a") as f:
+            f.write(f"{type(public_key).__name__}\n")
     if isinstance(public_key, mldsa.MLDSA65PublicKey):
         try:
             public_key.verify(signature, message)
