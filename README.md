@@ -115,6 +115,22 @@ scripts/demo_attack2.sh     # recording: demo/attack2_demo.gif
 
 ![Attack 2 demo](demo/attack2_demo.gif)
 
+## What PQC costs (benchmark, 2026-10-18)
+
+`benchmarks/pqc_costs.py` measures the cost directly; round time moves in ~3 s polling steps and cannot show it. Results: `results/pqc_costs_2026-10-18.txt` / `.json` (Apple M5 Pro).
+
+| | Classical | Post-quantum | Comment |
+|---|---|---|---|
+| Farm login: sign / verify, per request | ECDSA 68 / 151 µs | ML-DSA-65 289 / **68** µs | ML-DSA verifies faster, signs ~4× slower |
+| Farm login headers, per request (on the wire) | 520 B | 8,140 B | public key + signature sent every request |
+| **Login traffic per farm per round** (37 requests) | 18.8 KB | **297 KB** | **the main cost of PQC here** |
+| Login signing time per farm per round | 2.5 ms | 10.8 ms | negligible next to a ~9 s round |
+| TLS handshake (once per connection) | X25519: 1,228 B | X25519MLKEM768: 3,495 B | +2,267 B, no measurable time |
+| Signed model update: sign / verify | none | 257 / 67 µs | |
+| Signature vs update size | none | 3,309 B on a 1,408 B update (+235%) | +0.03% on a 10 MB update |
+
+**Finding:** the post-quantum maths costs microseconds. What costs is Flower's login design: it attaches the full public key and a fresh signature to every request (~37 per farm per round), so ML-DSA's larger keys and signatures add ~280 KB per farm per round, about 200× our model update. Authenticating once per session (or sending the key only at activation) would remove most of this.
+
 ## Setup and run
 
 ```bash
@@ -137,4 +153,5 @@ scripts/stop_all.sh                  # stop leftover Flower processes if a run r
 - [ ] Swap SecAgg+ ECDH → ML-KEM
 - [x] Sign model updates with ML-DSA; demo a tampered update being rejected (Attack 1)
 - [x] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
-- [ ] Measure round time, bandwidth and handshake cost, classical vs PQC
+- [x] Measure login, signing and handshake cost, classical vs PQC (`benchmarks/pqc_costs.py`)
+- [ ] Scale to more farms (3 → 20) and chart the results
