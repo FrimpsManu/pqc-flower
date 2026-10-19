@@ -23,7 +23,7 @@ The full design, including the step-by-step flow of one training round and a map
 |---|---|---|---|
 | Transport: key exchange | TLS 1.3, **already hybrid X25519MLKEM768** with grpcio 1.84 | `supercore/grpc.py` | Verify, measure, and keep (pin grpcio) |
 | Transport: certificates | ECDSA P-384 (classical) | our `scripts/gen_credentials.sh` | ML-DSA certificates if gRPC supports them, else documented limitation |
-| Node authentication | ECDSA P-384 signature over a **timestamp** in gRPC metadata | `supercore/primitives/asymmetric.py`, `client/grpc_rere_client/node_auth_client_interceptor.py` | ML-DSA |
+| Node authentication | ECDSA P-384 signature over a **timestamp** in gRPC metadata | `supercore/primitives/asymmetric.py`, `client/grpc_rere_client/node_auth_client_interceptor.py` | ML-DSA-65 (**done**, `pqc` mode) |
 | Secure aggregation (SecAgg+) | ECDH P-384 pairwise keys, then HKDF and Fernet | `common/secure_aggregation/crypto/symmetric_encryption.py`, `client/mod/secure_aggregation/secaggplus_mod.py` | ML-KEM |
 | Model update integrity | **None.** Updates are not signed. | none | ML-DSA signature on each update |
 
@@ -81,6 +81,23 @@ scripts/demo_attack.sh 8    # same attack, unsigned then signed (recording: demo
 
 ![Attack 1 demo](demo/attack1_demo.gif)
 
+## ML-DSA-65 farm login (2026-10-18)
+
+`scripts/run_local.sh pqc 3 15` runs the same system with every farm logging in with an **ML-DSA-65** key instead of ECDSA P-384. `pqcflower/pqc_login.py` patches only Flower's five farm-login call sites: the farm's key loading, request signing, `flwr supernode register`, the server's registration check, and the server's signature check. ECDSA keys keep working, and secure aggregation (which shares the same helpers for ECDH) is left untouched. The `pqc-flower-superlink`, `pqc-flower-supernode` and `pqc-flwr` commands are Flower's own commands with the patch applied.
+
+| Farm login | Test accuracy (15 rounds) | Mean round time | Login data per request |
+|---|---|---|---|
+| ECDSA P-384 (classical) | 90.9% | 9.4 s | ~0.3 KB (public key 215 B + signature ~103 B) |
+| **ML-DSA-65** | **90.9%** | 9.45 s | **6.1 KB** (public key 2,726 B + signature 3,309 B), ~8.1 KB on the wire |
+
+Verified (`explore/login_forgery_probe.py`, run against a live server):
+- The server stores 2,726-byte ML-DSA public keys; there is no silent fallback to ECDSA.
+- Forged login (farm 0's public key, attacker's signature) → `UNAUTHENTICATED: Invalid signature`.
+- A farm with an unregistered ML-DSA key cannot activate (`No SuperNode found with the given public key`).
+- The 6.1 KB login headers fit within gRPC's metadata limits.
+
+Round time moves in ~3 s steps set by Flower's polling, so it cannot show millisecond costs; the benchmark harness will measure login overhead directly.
+
 ## Setup and run
 
 ```bash
@@ -88,6 +105,7 @@ uv venv -p 3.12 .venv
 uv pip install -p .venv -r requirements.txt --override overrides.txt -e .   # or: uv sync
 scripts/get_data.sh
 scripts/run_local.sh classical 3 15   # TLS + ECDSA login, 3 farms, 15 rounds (or: insecure)
+scripts/run_local.sh pqc 3 15         # TLS + ML-DSA-65 login
 scripts/stop_all.sh                  # stop leftover Flower processes if a run reports busy ports
 .venv/bin/python explore/bench_primitives.py
 ```
@@ -98,7 +116,7 @@ scripts/stop_all.sh                  # stop leftover Flower processes if a run r
 - [x] Add classical TLS + node auth to the baseline (the real "before" for comparison)
 - [x] Settle the gRPC client group question: hybrid X25519MLKEM768 is already negotiated
 - [ ] Decide the classical reference for TLS (pin an older grpcio for a true classical X25519 baseline?)
-- [ ] Swap node auth ECDSA → ML-DSA
+- [x] Swap node auth ECDSA → ML-DSA (`pqc` mode)
 - [ ] Swap SecAgg+ ECDH → ML-KEM
 - [x] Sign model updates with ML-DSA; demo a tampered update being rejected (Attack 1)
 - [ ] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm

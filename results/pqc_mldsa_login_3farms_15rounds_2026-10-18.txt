@@ -1,0 +1,62 @@
+[setup] farms=3 sign-updates=False attack=none
+[round  0] test_acc=0.036 test_loss=3.091 round_time=0.00s
+[round  1] farm 1: accepted, unsigned
+[round  1] farm 2: accepted, unsigned
+[round  1] farm 0: accepted, unsigned
+[round  1] test_acc=0.375 test_loss=2.078 round_time=9.25s
+[round  2] farm 1: accepted, unsigned
+[round  2] farm 0: accepted, unsigned
+[round  2] farm 2: accepted, unsigned
+[round  2] test_acc=0.577 test_loss=1.571 round_time=6.24s
+[round  3] farm 2: accepted, unsigned
+[round  3] farm 1: accepted, unsigned
+[round  3] farm 0: accepted, unsigned
+[round  3] test_acc=0.675 test_loss=1.289 round_time=9.20s
+[round  4] farm 0: accepted, unsigned
+[round  4] farm 2: accepted, unsigned
+[round  4] farm 1: accepted, unsigned
+[round  4] test_acc=0.714 test_loss=1.113 round_time=6.24s
+[round  5] farm 0: accepted, unsigned
+[round  5] farm 2: accepted, unsigned
+[round  5] farm 1: accepted, unsigned
+[round  5] test_acc=0.784 test_loss=0.982 round_time=9.21s
+[round  6] farm 1: accepted, unsigned
+[round  6] farm 2: accepted, unsigned
+[round  6] farm 0: accepted, unsigned
+[round  6] test_acc=0.818 test_loss=0.890 round_time=12.32s
+[round  7] farm 1: accepted, unsigned
+[round  7] farm 0: accepted, unsigned
+[round  7] farm 2: accepted, unsigned
+[round  7] test_acc=0.850 test_loss=0.817 round_time=9.23s
+[round  8] farm 1: accepted, unsigned
+[round  8] farm 2: accepted, unsigned
+[round  8] farm 0: accepted, unsigned
+[round  8] test_acc=0.864 test_loss=0.759 round_time=6.22s
+[round  9] farm 2: accepted, unsigned
+[round  9] farm 1: accepted, unsigned
+[round  9] farm 0: accepted, unsigned
+[round  9] test_acc=0.877 test_loss=0.708 round_time=12.26s
+[round 10] farm 2: accepted, unsigned
+[round 10] farm 1: accepted, unsigned
+[round 10] farm 0: accepted, unsigned
+[round 10] test_acc=0.875 test_loss=0.669 round_time=9.24s
+[round 11] farm 0: accepted, unsigned
+[round 11] farm 1: accepted, unsigned
+[round 11] farm 2: accepted, unsigned
+[round 11] test_acc=0.893 test_loss=0.635 round_time=9.29s
+[round 12] farm 1: accepted, unsigned
+[round 12] farm 2: accepted, unsigned
+[round 12] farm 0: accepted, unsigned
+[round 12] test_acc=0.900 test_loss=0.606 round_time=12.22s
+[round 13] farm 2: accepted, unsigned
+[round 13] farm 1: accepted, unsigned
+[round 13] farm 0: accepted, unsigned
+[round 13] test_acc=0.902 test_loss=0.578 round_time=9.22s
+[round 14] farm 0: accepted, unsigned
+[round 14] farm 2: accepted, unsigned
+[round 14] farm 1: accepted, unsigned
+[round 14] test_acc=0.905 test_loss=0.554 round_time=9.29s
+[round 15] farm 1: accepted, unsigned
+[round 15] farm 2: accepted, unsigned
+[round 15] farm 0: accepted, unsigned
+[round 15] test_acc=0.909 test_loss=0.534 round_time=12.27s
