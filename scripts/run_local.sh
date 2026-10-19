@@ -5,6 +5,7 @@
 # Usage: scripts/run_local.sh [mode] [num_farms] [num_rounds] ["extra run-config"]
 #   mode = insecure   no TLS, no farm login
 #          classical  TLS 1.3 + ECDSA P-384 farm login (Flower's built-in security)
+#          pqc        TLS 1.3 + ML-DSA-65 farm login (pqcflower/pqc_login.py)
 #   extra run-config, e.g. "sign-updates=true attack-farm=0" (see [tool.flwr.app.config] in pyproject.toml)
 set -euo pipefail
 
@@ -17,6 +18,9 @@ EXTRA_CONFIG="${4:-}"
 LOGS="$ROOT/logs/$MODE${EXTRA_CONFIG:+_$(echo "$EXTRA_CONFIG" | tr " =" "_-")}"
 CERTS="$ROOT/credentials/certs"
 KEYS="$ROOT/credentials/farm-keys"
+MLDSA_KEYS="$ROOT/credentials/farm-keys-mldsa"
+# Flower's commands; pqc mode swaps in the pqc-* wrappers that enable ML-DSA farm login.
+LINK_CMD=flower-superlink NODE_CMD=flower-supernode FLWR_CMD=flwr
 export FLWR_HOME="$ROOT/.flwr"
 export PQC_DATA_DIR="$ROOT/data"
 export PYTHONUNBUFFERED=1  # ServerApp output reaches the log line by line, so progress shows live
@@ -33,15 +37,23 @@ case "$MODE" in
     conn_sec='insecure = true'
     farm_sec() { echo --insecure; }
     ;;
-  classical)
+  classical|pqc)
     [[ -f "$CERTS/server.pem" && -f "$KEYS/farm$((FARMS - 1))" ]] \
       || "$ROOT/scripts/gen_credentials.sh" "$FARMS"
     LINK_SEC=(--ssl-ca-certfile "$CERTS/ca.crt" --ssl-certfile "$CERTS/server.pem"
               --ssl-keyfile "$CERTS/server.key" --enable-supernode-auth)
     conn_sec="root-certificates = \"$CERTS/ca.crt\""
+    if [[ "$MODE" == pqc ]]; then
+      PQC_LOGIN_KEY_DIR="$MLDSA_KEYS" "$BIN/python" -m pqcflower.pqc_login "$FARMS" > /dev/null
+      LINK_CMD=pqc-flower-superlink NODE_CMD=pqc-flower-supernode FLWR_CMD=pqc-flwr
+      login_key() { echo "$MLDSA_KEYS/farm$1.pem"; }
+      login_pub() { echo "$MLDSA_KEYS/farm$1.pub.pem"; }
+    else
+      login_key() { echo "$KEYS/farm$1"; }
+      login_pub() { echo "$KEYS/farm$1.pub"; }
+    fi
     farm_sec() {
-      echo --root-certificates "$CERTS/ca.crt" \
-        --auth-supernode-private-key "$KEYS/farm$1" --auth-supernode-public-key "$KEYS/farm$1.pub"
+      echo --root-certificates "$CERTS/ca.crt" --auth-supernode-private-key "$(login_key "$1")"
     }
     ;;
   *) echo "unknown mode: $MODE" >&2; exit 1 ;;
@@ -98,17 +110,17 @@ wait_for_port() {
 }
 
 # Run the apps in this virtualenv: Flower's per-run install would pull cryptography<47 (no ML-DSA).
-"$BIN/flower-superlink" "${LINK_SEC[@]}" --disable-runtime-dependency-installation --database "$LOGS/state.db" > "$LOGS/superlink.log" 2>&1 &
+"$BIN/$LINK_CMD" "${LINK_SEC[@]}" --disable-runtime-dependency-installation --database "$LOGS/state.db" > "$LOGS/superlink.log" 2>&1 &
 link_pid=$!
 disown "$link_pid"
 pids+=($link_pid)
 wait_for_port 8000 "$link_pid" "$LOGS/superlink.log"
 wait_for_port 9092 "$link_pid" "$LOGS/superlink.log"
 
-if [[ "$MODE" == classical ]]; then
+if [[ "$MODE" != insecure ]]; then
   # Flower's direct-trust model: the SuperLink only accepts farms whose public key was registered.
   for ((i = 0; i < FARMS; i++)); do
-    if ! "$BIN/flwr" supernode register "$KEYS/farm$i.pub" local --name "farm$i" > "$LOGS/register$i.log" 2>&1; then
+    if ! "$BIN/$FLWR_CMD" supernode register "$(login_pub "$i")" local --name "farm$i" > "$LOGS/register$i.log" 2>&1; then
       echo "registering farm$i failed:" >&2; cat "$LOGS/register$i.log" >&2; exit 1
     fi
   done
@@ -116,7 +128,7 @@ fi
 
 for ((i = 0; i < FARMS; i++)); do
   # shellcheck disable=SC2046
-  "$BIN/flower-supernode" $(farm_sec "$i") --superlink 127.0.0.1:9092 --port $((9100 + i)) \
+  "$BIN/$NODE_CMD" $(farm_sec "$i") --superlink 127.0.0.1:9092 --port $((9100 + i)) \
     --node-config "partition-id=$i num-partitions=$FARMS" > "$LOGS/farm$i.log" 2>&1 &
   farm_pids[i]=$!
   disown "$!"
@@ -128,7 +140,7 @@ done
 
 cd "$ROOT"
 : > "$LOGS/run.log"
-"$BIN/flwr" run . local --stream --run-config "num-farms=$FARMS num-server-rounds=$ROUNDS $EXTRA_CONFIG" \
+"$BIN/$FLWR_CMD" run . local --stream --run-config "num-farms=$FARMS num-server-rounds=$ROUNDS $EXTRA_CONFIG" \
   > "$LOGS/run.log" 2>&1 &
 disown "$!"
 pids+=($!)

@@ -85,7 +85,7 @@ Each attack runs against both versions.
 | Oct 13–14 | ✅ Repo, crypto map, PQC benchmarks | | Classical baseline started |
 | **Oct 15** | **Progress report due (2 pages): all** | | |
 | Oct 16–22 | ✅ Classical TLS + ECDSA login baseline (done Oct 13); TLS: classical vs hybrid comparison, PQC certificates check | ✅ Signed-update format (round + farm id + weights), done Oct 15 | ✅ Baseline done Oct 13; start benchmark harness |
-| Oct 23–29 | ML-DSA farm login | ✅ Signed model updates (Topic 3), done early Oct 15 (PR #1) | Benchmark harness (round time, bytes, handshake) |
+| Oct 23–29 | ✅ ML-DSA farm login, done early Oct 18 | ✅ Signed model updates (Topic 3), done early Oct 15 (PR #1) | Benchmark harness (round time, bytes, handshake) |
 | Oct 30–Nov 5 | ML-KEM in SecAgg+ *(stretch, see below)* | ✅ Attack 1 (tampered update), done early Oct 15; Attack 2 (simulated quantum) | Run classical benchmarks |
 | Nov 6–10 | Integration: one config switch, classical ↔ PQC | Attack demo scripts polished | PQC benchmarks, charts, threat table |
 | Nov 11–14 | **Final report + demo rehearsal: all** | | |

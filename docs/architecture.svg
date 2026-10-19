@@ -64,9 +64,9 @@
   <rect x="872" y="70" width="498" height="410" rx="12" fill="#F7FAFC" stroke="#2D3748" stroke-width="2.5"/>
   <text x="1121" y="100" text-anchor="middle" font-size="18" font-weight="bold" fill="#1F2937">Server: Flower SuperLink + ServerApp</text>
 
-  <rect x="892" y="116" width="458" height="58" rx="8" fill="#FEFCBF" stroke="#D69E2E" stroke-width="1.5"/>
-  <text x="910" y="140" font-size="15" font-weight="bold" fill="#744210">1. Farm login (node authentication)</text>
-  <text x="910" y="162" font-size="13" fill="#744210">ECDSA P-384 today → ML-DSA-65 (in progress)</text>
+  <rect x="892" y="116" width="458" height="58" rx="8" fill="#C6F6D5" stroke="#38A169" stroke-width="1.5"/>
+  <text x="910" y="140" font-size="15" font-weight="bold" fill="#22543D">1. Farm login (node authentication)</text>
+  <text x="910" y="162" font-size="13" fill="#22543D">ECDSA P-384 → ML-DSA-65 (done)</text>
 
   <rect x="892" y="184" width="458" height="58" rx="8" fill="#C6F6D5" stroke="#38A169" stroke-width="1.5"/>
   <text x="910" y="208" font-size="15" font-weight="bold" fill="#22543D">2. Verify ML-DSA-65 signature on each update</text>

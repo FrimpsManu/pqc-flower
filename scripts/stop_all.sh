@@ -3,7 +3,7 @@
 # (absolute ".venv/bin/flower-..." or relative, which shows up as ".venv/bin/python .venv/bin/flower-...").
 # Usage: scripts/stop_all.sh [--quiet]
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PATTERN="$ROOT/\.venv/bin/(python[0-9.]* .*)?flower-"
+PATTERN="$ROOT/\.venv/bin/(python[0-9.]* .*)?(pqc-)?flower-"
 
 found=$(pgrep -f "$PATTERN" || true)
 if [[ -z "$found" ]]; then
