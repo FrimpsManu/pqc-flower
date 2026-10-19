@@ -6,6 +6,7 @@
 #   mode = insecure   no TLS, no farm login
 #          classical  TLS 1.3 + ECDSA P-384 farm login (Flower's built-in security)
 #          pqc        TLS 1.3 + ML-DSA-65 farm login (pqcflower/pqc_login.py)
+#   SERVER_ONLY=1 (env): start the SuperLink and register farms, but start no farms
 #   extra run-config, e.g. "sign-updates=true attack-farm=0" (see [tool.flwr.app.config] in pyproject.toml)
 set -euo pipefail
 
@@ -124,6 +125,14 @@ if [[ "$MODE" != insecure ]]; then
       echo "registering farm$i failed:" >&2; cat "$LOGS/register$i.log" >&2; exit 1
     fi
   done
+fi
+
+# SERVER_ONLY=1: stop here with the SuperLink up and every farm registered but offline
+# (used by the Attack 2 demo, which tries to log in as farm 0).
+if [[ -n "${SERVER_ONLY:-}" ]]; then
+  echo "SERVER READY (mode=$MODE, $FARMS farms registered, none started)"
+  while kill -0 "$link_pid" 2>/dev/null; do sleep 1; done
+  exit 0
 fi
 
 for ((i = 0; i < FARMS; i++)); do

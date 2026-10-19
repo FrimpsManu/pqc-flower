@@ -98,6 +98,23 @@ Verified (`explore/login_forgery_probe.py`, run against a live server):
 
 Round time moves in ~3 s steps set by Flower's polling, so it cannot show millisecond costs; the benchmark harness will measure login overhead directly.
 
+## Attack 2 demo: simulated quantum attacker impersonates a farm (2026-10-18)
+
+Farm 0's login *public* key is public: it is sent in every login request. A large quantum computer running Shor's algorithm could turn an elliptic-curve public key into its private key. No such machine exists, so `pqcflower/attack2_quantum.py` **simulates** one with an oracle: for an ECDSA key it returns farm 0's real private key, checked to match; for an ML-DSA key it fails, because no quantum algorithm is known to break ML-DSA. The attacker then logs in to a live SuperLink (TLS 1.3) as farm 0, with farm 0 registered but offline.
+
+| Farm login | Quantum key recovery (simulated) | Login as farm 0 | Result |
+|---|---|---|---|
+| ECDSA P-384 (classical Flower) | private key **recovered** | **accepted**, server activates the attacker as farm 0 | **impersonation succeeds** |
+| **ML-DSA-65** (ours) | **fails** | **rejected**: `UNAUTHENTICATED: Invalid signature` | impersonation blocked |
+
+This is the post-quantum point of the project: Attack 1 shows updates must be signed, and Attack 2 shows the signatures must be quantum-safe.
+
+```bash
+scripts/demo_attack2.sh     # recording: demo/attack2_demo.gif
+```
+
+![Attack 2 demo](demo/attack2_demo.gif)
+
 ## Setup and run
 
 ```bash
@@ -119,5 +136,5 @@ scripts/stop_all.sh                  # stop leftover Flower processes if a run r
 - [x] Swap node auth ECDSA → ML-DSA (`pqc` mode)
 - [ ] Swap SecAgg+ ECDH → ML-KEM
 - [x] Sign model updates with ML-DSA; demo a tampered update being rejected (Attack 1)
-- [ ] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
+- [x] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
 - [ ] Measure round time, bandwidth and handshake cost, classical vs PQC
