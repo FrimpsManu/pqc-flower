@@ -58,11 +58,12 @@ sequenceDiagram
 | Farm training + update signing | `pqcflower/client_app.py` |
 | Server: signature check + FedAvg (`SignedFedAvg`) | `pqcflower/server_app.py` |
 | ML-DSA-65 keys, sign and verify | `pqcflower/signing.py` |
-| Simulated attacker (demo only) | `pqcflower/attack.py` |
+| Simulated attacker, Attack 1: tampered update (demo only) | `pqcflower/attack.py` |
+| Simulated quantum attacker, Attack 2: farm impersonation (demo only) | `pqcflower/attack2_quantum.py` |
 | Data, farm split and model | `pqcflower/task.py` |
 | ML-DSA-65 farm login (patches Flower's login path) | `pqcflower/pqc_login.py`, `pqcflower/cli.py` |
 | Start server + farms (insecure / classical / pqc) | `scripts/run_local.sh` |
 | TLS certificates and farm login keys | `scripts/gen_credentials.sh` |
-| Attack 1 demo | `scripts/demo_attack.sh` |
+| Attack 1 / Attack 2 demos | `scripts/demo_attack.sh`, `scripts/demo_attack2.sh` |
 | TLS handshake capture | `explore/tls_keyshare_sniffer.py` |
 | Forged-login check | `explore/login_forgery_probe.py` |
