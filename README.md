@@ -131,6 +131,38 @@ scripts/demo_attack2.sh     # recording: demo/attack2_demo.gif
 
 **Finding:** the post-quantum maths costs microseconds. What costs is Flower's login design: it attaches the full public key and a fresh signature to every request (~37 per farm per round), so ML-DSA's larger keys and signatures add ~280 KB per farm per round, about 200× our model update. Authenticating once per session (or sending the key only at activation) would remove most of this.
 
+## Session-based login (2026-10-22)
+
+Fixes the cost found above. `pqc-session` mode (`pqcflower/session_login.py`): the farm logs in
+with ML-DSA-65 once; the SuperLink then issues a session (16 B ID + 32 B key, sent back inside
+TLS 1.3, whose key exchange is hybrid X25519 + ML-KEM-768). Later requests carry only the session
+ID, a timestamp and an HMAC-SHA256 tag over the RPC method and timestamp. Sessions expire after
+10 minutes (`PQC_SESSION_TTL`); on expiry or a SuperLink restart the farm logs in with ML-DSA again.
+
+```bash
+scripts/run_local.sh pqc-session 3 15
+.venv/bin/python benchmarks/pqc_costs.py --only-session      # results/pqc_session_<date>.*
+```
+
+Measured on real training runs (3 farms, 5 rounds; `results/pqc_session_2026-10-22.txt`):
+
+| Farm login | Auth traffic per farm per round | ML-DSA verifications (whole run) |
+|---|---|---|
+| Classical ECDSA, every request | 18.8 KB | none (ECDSA) |
+| ML-DSA-65, every request (`pqc`) | 301.7 KB | 570 |
+| **ML-DSA-65 once, then session (`pqc-session`)** | **7.1 KB (42× less)** | **3** (one per farm) |
+
+Post-quantum login now costs *less* traffic than Flower's classical login. Accuracy is unchanged:
+90.9% after 15 rounds, as in `classical` and `pqc` mode. Checked against a live
+SuperLink with `explore/session_probe.py`: a valid session is accepted; a wrong MAC, an unknown
+session, a tag computed for another RPC, a 10-minute-old timestamp, a session used for another
+farm's node ID and a forged ML-DSA login are all rejected (`UNAUTHENTICATED`). Attack 2 is still
+rejected, since a session can only be obtained with a valid ML-DSA login.
+
+**Why it is still quantum-safe:** the session key is random and only travels inside hybrid
+post-quantum TLS; HMAC-SHA256 keeps 128-bit security against quantum attackers (Grover's algorithm
+only halves it). The identity check is still ML-DSA, once per session.
+
 ## Setup and run
 
 ```bash
@@ -154,4 +186,5 @@ scripts/stop_all.sh                  # stop leftover Flower processes if a run r
 - [x] Sign model updates with ML-DSA; demo a tampered update being rejected (Attack 1)
 - [x] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
 - [x] Measure login, signing and handshake cost, classical vs PQC (`benchmarks/pqc_costs.py`)
+- [x] Session-based login: one ML-DSA login per session (`pqc-session` mode), 42× less auth traffic
 - [ ] Scale to more farms (3 → 20) and chart the results
