@@ -1,0 +1,7 @@
+PQC cost benchmark, 2026-10-22 (arm64, Python 3.12.15)
+
+E. Auth traffic actually sent by the farms (3 farms, 5 rounds per mode)
+   per-request   570 requests,   301.7 KB auth traffic per farm per round, 570 ML-DSA verifications, accuracy 0.773
+   session       568 requests,     7.1 KB auth traffic per farm per round,   3 ML-DSA verifications, accuracy 0.777
+   session login cuts auth traffic 42x (classical ECDSA login: ~18.8 KB)
+

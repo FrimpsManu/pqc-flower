@@ -6,6 +6,7 @@
 #   mode = insecure   no TLS, no farm login
 #          classical  TLS 1.3 + ECDSA P-384 farm login (Flower's built-in security)
 #          pqc        TLS 1.3 + ML-DSA-65 farm login (pqcflower/pqc_login.py)
+#          pqc-session  as pqc, but one ML-DSA login per session, then session MACs (session_login.py)
 #   SERVER_ONLY=1 (env): start the SuperLink and register farms, but start no farms
 #   extra run-config, e.g. "sign-updates=true attack-farm=0" (see [tool.flwr.app.config] in pyproject.toml)
 set -euo pipefail
@@ -38,13 +39,14 @@ case "$MODE" in
     conn_sec='insecure = true'
     farm_sec() { echo --insecure; }
     ;;
-  classical|pqc)
+  classical|pqc|pqc-session)
     [[ -f "$CERTS/server.pem" && -f "$KEYS/farm$((FARMS - 1))" ]] \
       || "$ROOT/scripts/gen_credentials.sh" "$FARMS"
     LINK_SEC=(--ssl-ca-certfile "$CERTS/ca.crt" --ssl-certfile "$CERTS/server.pem"
               --ssl-keyfile "$CERTS/server.key" --enable-supernode-auth)
     conn_sec="root-certificates = \"$CERTS/ca.crt\""
-    if [[ "$MODE" == pqc ]]; then
+    if [[ "$MODE" == pqc* ]]; then
+      [[ "$MODE" == pqc-session ]] && export PQC_SESSION_LOGIN=1
       PQC_LOGIN_KEY_DIR="$MLDSA_KEYS" "$BIN/python" -m pqcflower.pqc_login "$FARMS" > /dev/null
       LINK_CMD=pqc-flower-superlink NODE_CMD=pqc-flower-supernode FLWR_CMD=pqc-flwr
       login_key() { echo "$MLDSA_KEYS/farm$1.pem"; }
