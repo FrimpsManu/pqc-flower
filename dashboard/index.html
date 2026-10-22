@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pqc-flower prototype</title>
+<style>
+  :root {
+    --bg: #f6f6f4; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #dcdcd6;
+    --ok: #1f7a3a; --bad: #b42318; --warn: #9a6700; --accent: #24527a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.45 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  header { padding: 18px 28px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: 360px 1fr; gap: 18px; padding: 18px 28px 28px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+  section + section { margin-top: 18px; }
+  h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  label { display: block; margin: 8px 0; }
+  select, button { font: inherit; }
+  select { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+  .row { display: flex; gap: 8px; }
+  button { padding: 7px 12px; border: 1px solid var(--accent); background: var(--accent); color: #fff;
+           border-radius: 4px; cursor: pointer; }
+  button.secondary { background: #fff; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+  #status { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  #chart { width: 100%; height: 260px; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; margin-top: 6px; }
+  .legend span::before { content: ""; display: inline-block; width: 18px; height: 3px; margin-right: 6px;
+                         vertical-align: middle; background: var(--c); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--muted); font-size: 12px; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); font-weight: 600; } .muted { color: var(--muted); }
+  #rounds { max-height: 230px; overflow: auto; }
+  #log { height: 170px; overflow: auto; margin: 0; padding: 8px; background: #fafaf8; border: 1px solid var(--line);
+         font: 12px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: #333; }
+  #a2result { margin-top: 10px; padding: 10px; border-left: 3px solid var(--line); background: #fafaf8; display: none; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 1000px) { main, .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Quantum-Safe Federated Learning for Smart Agriculture</h1>
+  <p>Prototype: 3 farms train one crop-recommendation model with Flower over gRPC/TLS 1.3.
+     Augustine Manu-Frimpong, David Orisakwe, Kimora Mclemore</p>
+</header>
+<main>
+  <div>
+    <section>
+      <h2>Training run</h2>
+      <label>Security
+        <select id="mode">
+          <option value="insecure">None (no TLS, no farm login)</option>
+          <option value="classical">Classical Flower: TLS 1.3 + ECDSA login</option>
+          <option value="pqc" selected>Post-quantum: TLS 1.3 + ML-DSA-65 login</option>
+        </select>
+      </label>
+      <label>Model updates
+        <select id="signed">
+          <option value="false">Not signed (Flower default)</option>
+          <option value="true" selected>Signed with ML-DSA-65</option>
+        </select>
+      </label>
+      <label>Attack 1
+        <select id="attack">
+          <option value="false" selected>Off</option>
+          <option value="true">Tamper with farm 0's update in transit</option>
+        </select>
+      </label>
+      <label>Rounds
+        <select id="rounds"><option>5</option><option selected>8</option><option>15</option></select>
+      </label>
+      <div class="row">
+        <button id="run">Start run</button>
+        <button id="stop" class="secondary">Stop</button>
+        <button id="clear" class="secondary">Clear chart</button>
+      </div>
+      <p class="hint">Starts a real SuperLink and three SuperNodes on this laptop. About 9 s per round.</p>
+      <div id="status"></div>
+    </section>
+
+    <section>
+      <h2>Attack 2: quantum attacker</h2>
+      <p style="margin:0 0 10px">A simulated quantum computer tries to recover farm 0's login key from its
+        public key, then logs in to the server as farm 0.</p>
+      <div class="row">
+        <button id="a2c" class="secondary">Against ECDSA login</button>
+        <button id="a2p" class="secondary">Against ML-DSA login</button>
+      </div>
+      <div id="a2result"></div>
+      <p class="hint">Only the quantum computer is simulated (Shor's algorithm breaks ECDSA; no known
+        quantum attack breaks ML-DSA). The server and the login are real.</p>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <h2>Shared model accuracy (held-out test set)</h2>
+      <svg id="chart" viewBox="0 0 800 260" preserveAspectRatio="none"></svg>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <div class="grid2" style="margin-top:18px">
+      <section style="margin:0">
+        <h2>Server decisions per round</h2>
+        <div id="rounds"><p class="muted">No run yet.</p></div>
+      </section>
+      <section style="margin:0">
+        <h2>Output</h2>
+        <pre id="log"></pre>
+      </section>
+    </div>
+
+    <section>
+      <h2>Cost of post-quantum security (measured)</h2>
+      <table id="costs"><tr><td class="muted">Loading ...</td></tr></table>
+      <p class="hint" id="costnote"></p>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const COLORS = ["#24527a", "#b42318", "#1f7a3a", "#9a6700", "#6941c6", "#555"];
+const MODE_NAME = { insecure: "no security", classical: "ECDSA login", pqc: "ML-DSA login" };
+let series = [];          // {label, color, points: [[round, acc]]}
+let since = 0, jobId = 0, polling = null, current = null, maxRounds = 8;
+
+function label(spec) {
+  return `${MODE_NAME[spec.mode]}, ${spec.signed ? "signed" : "unsigned"} updates` +
+         (spec.attack ? ", Attack 1 on" : "");
+}
+
+function drawChart() {
+  const svg = $("chart"), W = 800, H = 260, L = 40, R = 12, T = 10, B = 26;
+  const xmax = Math.max(maxRounds, ...series.flatMap(s => s.points.map(p => p[0])), 1);
+  const x = (r) => L + (W - L - R) * r / xmax, y = (a) => T + (H - T - B) * (1 - a);
+  let out = "";
+  for (let a = 0; a <= 1.0001; a += 0.25) {
+    out += `<line x1="${L}" x2="${W - R}" y1="${y(a)}" y2="${y(a)}" stroke="#e6e6e1"/>`;
+    out += `<text x="${L - 6}" y="${y(a) + 4}" font-size="11" text-anchor="end" fill="#6b6b66">${Math.round(a * 100)}%</text>`;
+  }
+  const step = xmax > 10 ? 5 : 1;
+  for (let r = 0; r <= xmax; r += step)
+    out += `<text x="${x(r)}" y="${H - 8}" font-size="11" text-anchor="middle" fill="#6b6b66">${r}</text>`;
+  for (const s of series) {
+    if (!s.points.length) continue;
+    const d = s.points.map((p, i) => `${i ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ");
+    out += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+    const [lr, la] = s.points[s.points.length - 1];
+    out += `<circle cx="${x(lr)}" cy="${y(la)}" r="3" fill="${s.color}"/>`;
+    out += `<text x="${x(lr) - 6}" y="${y(la) - 7}" font-size="11" text-anchor="end" fill="${s.color}">${(la * 100).toFixed(1)}%</text>`;
+  }
+  svg.innerHTML = out;
+  $("legend").innerHTML = series.map(s => `<span style="--c:${s.color}">${s.label}</span>`).join("");
+}
+
+function setBusy(busy) {
+  for (const id of ["run", "a2c", "a2p"]) $(id).disabled = busy;
+}
+
+const roundRows = {};
+function handleTrainLine(line) {
+  let m = line.match(/^\[round +(\d+)\] test_acc=([0-9.]+)/);
+  if (m) {
+    current.points.push([+m[1], +m[2]]);
+    drawChart();
+    if (+m[1] > 0) {
+      const row = roundRows[m[1]] || (roundRows[m[1]] = {});
+      row.acc = +m[2];
+      renderRounds();
+    }
+    $("status").textContent = `Round ${m[1]} of ${maxRounds}: accuracy ${(m[2] * 100).toFixed(1)}%`;
+    return;
+  }
+  m = line.match(/^\[round +(\d+)\] farm (\d+): (.*)$/);
+  if (m) {
+    const row = roundRows[m[1]] || (roundRows[m[1]] = {});
+    row["f" + m[2]] = m[3];
+    renderRounds();
+  }
+}
+
+function cell(text) {
+  if (!text) return `<td class="muted">waiting</td>`;
+  if (/REJECTED/.test(text)) return `<td class="ok">rejected (bad signature)</td>`;
+  if (/TAMPERED/.test(text)) return `<td class="bad">tampered, accepted</td>`;
+  if (/signature valid/.test(text)) return `<td>signature valid</td>`;
+  return `<td>accepted, unsigned</td>`;
+}
+
+function renderRounds() {
+  const keys = Object.keys(roundRows).map(Number).sort((a, b) => b - a);
+  if (!keys.length) return;
+  let h = "<table><tr><th>Round</th><th>Farm 0</th><th>Farm 1</th><th>Farm 2</th><th>Accuracy</th></tr>";
+  for (const k of keys) {
+    const r = roundRows[k];
+    h += `<tr><td>${k}</td>${cell(r.f0)}${cell(r.f1)}${cell(r.f2)}` +
+         `<td class="num">${r.acc != null ? (r.acc * 100).toFixed(1) + "%" : ""}</td></tr>`;
+  }
+  $("rounds").innerHTML = h + "</table>";
+}
+
+function handleAttack2(lines, done, exit) {
+  const text = lines.join("\n");
+  const box = $("a2result");
+  box.style.display = "block";
+  const recovered = /RECOVERED/.test(text), failed = /recovery FAILED/.test(text);
+  const accepted = /LOGIN ACCEPTED/.test(text), rejected = /LOGIN REJECTED/.test(text);
+  let h = `<strong>${current.label}</strong><br>`;
+  if (recovered) h += `Quantum key recovery: <span class="bad">private key recovered</span><br>`;
+  if (failed) h += `Quantum key recovery: <span class="ok">failed</span><br>`;
+  if (accepted) h += `Login as farm 0: <span class="bad">ACCEPTED, the attacker is now farm 0</span>`;
+  else if (rejected) h += `Login as farm 0: <span class="ok">REJECTED (invalid signature)</span>`;
+  else h += done ? `<span class="bad">Run failed, see output</span>` : `<span class="muted">running ...</span>`;
+  box.style.borderLeftColor = accepted ? "var(--bad)" : rejected ? "var(--ok)" : "var(--line)";
+  box.innerHTML = h;
+}
+
+let a2lines = [];
+async function poll() {
+  const r = await fetch(`/api/job?since=${since}`).then(r => r.json());
+  if (r.id !== jobId) return;
+  since += r.lines.length;
+  if (r.lines.length) {
+    const log = $("log");
+    log.textContent += r.lines.join("\n") + "\n";
+    log.scrollTop = log.scrollHeight;
+  }
+  if (current.kind === "train") r.lines.forEach(handleTrainLine);
+  else { a2lines.push(...r.lines); handleAttack2(a2lines, !r.running, r.exit); }
+  if (!r.running) {
+    clearInterval(polling);
+    setBusy(false);
+    if (current.kind === "train") {
+      const last = current.points[current.points.length - 1];
+      $("status").innerHTML = r.exit === 0 && last
+        ? `Finished: final accuracy <strong>${(last[1] * 100).toFixed(1)}%</strong>`
+        : `<span class="bad">Run stopped or failed (see output)</span>`;
+    } else $("status").textContent = "";
+  }
+}
+
+async function start(spec) {
+  const res = await fetch("/api/run", { method: "POST", body: JSON.stringify(spec) });
+  const r = await res.json();
+  if (r.error) { $("status").innerHTML = `<span class="bad">${r.error}</span>`; return; }
+  jobId = r.id; since = 0; $("log").textContent = "";
+  current = { kind: spec.kind, label: spec.kind === "train" ? label(spec) : `Attack 2 against ${MODE_NAME[spec.mode]}`, points: [] };
+  if (spec.kind === "train") {
+    maxRounds = spec.rounds;
+    for (const k in roundRows) delete roundRows[k];
+    $("rounds").innerHTML = `<p class="muted">Starting server and farms ...</p>`;
+    current.color = COLORS[series.length % COLORS.length];
+    series.push(current);
+    drawChart();
+    $("status").textContent = "Starting server and 3 farms ...";
+  } else {
+    a2lines = [];
+    handleAttack2([], false, null);
+    $("status").textContent = "Attack 2 running ...";
+  }
+  setBusy(true);
+  polling = setInterval(poll, 500);
+}
+
+$("run").onclick = () => start({
+  kind: "train", mode: $("mode").value, signed: $("signed").value === "true",
+  attack: $("attack").value === "true", rounds: +$("rounds").value,
+});
+$("a2c").onclick = () => start({ kind: "attack2", mode: "classical" });
+$("a2p").onclick = () => start({ kind: "attack2", mode: "pqc" });
+$("stop").onclick = () => fetch("/api/stop", { method: "POST" });
+$("clear").onclick = () => { series = series.filter(s => s === current && $("run").disabled); drawChart(); };
+
+async function loadCosts() {
+  const c = await fetch("/api/costs").then(r => r.json());
+  if (!c.login) { $("costs").innerHTML = "<tr><td>No benchmark results found.</td></tr>"; return; }
+  const e = c.login["ECDSA P-384"], m = c.login["ML-DSA-65"], q = c.requests, t = c.tls, u = c.updates;
+  const us = (v) => `${Math.round(v)} µs`, kb = (v) => `${v.toFixed(1)} KB`;
+  const hs = (g) => g.client_sent_B + g.client_received_B;
+  const rows = [
+    ["", "Classical", "Post-quantum"],
+    ["Farm login: sign / verify (per request)", `ECDSA ${us(e.sign_us)} / ${us(e.verify_us)}`, `ML-DSA-65 ${us(m.sign_us)} / ${us(m.verify_us)}`],
+    ["Login public key + signature", `${e.public_key_B} + ${e.signature_B} B`, `${m.public_key_B} + ${m.signature_B} B`],
+    [`Login traffic per farm per round (${Math.round(q.per_farm_per_round)} requests)`, kb(q["ECDSA P-384_KB_per_farm_round"]), kb(q["ML-DSA-65_KB_per_farm_round"])],
+    ["TLS 1.3 handshake (bytes / time)", `X25519: ${hs(t.X25519)} B / ${t.X25519.median_ms.toFixed(1)} ms`, `X25519MLKEM768: ${hs(t.X25519MLKEM768)} B / ${t.X25519MLKEM768.median_ms.toFixed(1)} ms`],
+    ["Signing a model update (1,408 B)", "not signed", `${us(u.sign_us)} sign, ${us(u.verify_us)} verify, +${u.signature_B} B`],
+  ];
+  $("costs").innerHTML = rows.map((r, i) => `<tr>${r.map(v => i ? `<td class="num">${v}</td>` : `<th>${v}</th>`).join("")}</tr>`).join("");
+  $("costnote").textContent = `From benchmarks/pqc_costs.py, run ${c.date}. The post-quantum maths costs microseconds; ` +
+    `the main cost is login traffic, because Flower sends the public key and a signature with every request.`;
+}
+
+drawChart();
+loadCosts();
+</script>
+</body>
+</html>

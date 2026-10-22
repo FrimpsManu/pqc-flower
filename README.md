@@ -155,3 +155,14 @@ scripts/stop_all.sh                  # stop leftover Flower processes if a run r
 - [x] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
 - [x] Measure login, signing and handshake cost, classical vs PQC (`benchmarks/pqc_costs.py`)
 - [ ] Scale to more farms (3 → 20) and chart the results
+
+## Prototype dashboard (2026-10-22)
+
+A local web page that drives the real system: pick the security mode, sign updates on or off,
+switch Attack 1 on, and watch the shared model's accuracy and the server's decision on every farm
+update, round by round. Attack 2 runs from two buttons (ECDSA login vs ML-DSA login), and the
+measured PQC costs are shown alongside.
+
+```bash
+.venv/bin/python dashboard/server.py     # then open http://127.0.0.1:8765
+```
