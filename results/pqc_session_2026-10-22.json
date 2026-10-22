@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-22",
+  "machine": "arm64",
+  "session": {
+    "per-request": {
+      "requests": 570,
+      "auth_KB_total": 4526.044921875,
+      "auth_KB_per_farm_round": 301.736328125,
+      "mldsa_verifications": 570,
+      "final_acc": 0.773
+    },
+    "session": {
+      "requests": 568,
+      "auth_KB_total": 107.13671875,
+      "auth_KB_per_farm_round": 7.142447916666667,
+      "mldsa_verifications": 3,
+      "final_acc": 0.777
+    }
+  }
+}

@@ -5,8 +5,11 @@
   C. TLS 1.3 handshake against a live SuperLink: classical X25519 vs hybrid X25519MLKEM768
   D. Login requests per farm per round, from a real pqc-mode training run, giving login bytes
      per farm per round
+  E. Session-based login (pqcflower/session_login.py) vs per-request ML-DSA login: auth bytes
+     actually sent by the farms and ML-DSA verifications, measured on real training runs
 
-Usage: python benchmarks/pqc_costs.py [--skip-live]   (C and D start their own servers, ~3 min)
+Usage: python benchmarks/pqc_costs.py [--skip-live]   (C-E start their own servers, ~5 min)
+       python benchmarks/pqc_costs.py --only-session   (E only; writes results/pqc_session_<date>.*)
 Writes results/pqc_costs_<date>.txt and .json.
 """
 
@@ -188,14 +191,52 @@ def bench_requests(rounds: int = 5, farms: int = 3) -> None:
     say()
 
 
+# --- E. Session-based login -----------------------------------------------------------------------
+def bench_session(rounds: int = 5, farms: int = 3) -> None:
+    say(f"E. Auth traffic actually sent by the farms ({farms} farms, {rounds} rounds per mode)")
+    results["session"] = {}
+    # "per-request" is session mode with sessions disabled (TTL 0): every request does Flower's full
+    # ML-DSA login, and the same counter in session_login.py measures the bytes in both runs.
+    for name, ttl in (("per-request", "0"), ("session", "600")):
+        bytes_file, count_file = ROOT / f"logs/auth_bytes_{name}.txt", ROOT / f"logs/login_count_{name}.txt"
+        bytes_file.unlink(missing_ok=True)
+        count_file.unlink(missing_ok=True)
+        env = {**os.environ, "PQC_LOGIN_BYTES_FILE": str(bytes_file), "PQC_LOGIN_COUNT_FILE": str(count_file),
+               "PQC_SESSION_TTL": ttl}
+        out = subprocess.run([str(ROOT / "scripts/run_local.sh"), "pqc-session", str(farms), str(rounds)], env=env,
+                             capture_output=True, text=True, check=True, cwd=ROOT).stdout
+        sizes = [int(x) for x in bytes_file.read_text().split()]
+        acc = float(re.findall(r"test_acc=([0-9.]+)", out)[-1])
+        r = {
+            "requests": len(sizes), "auth_KB_total": sum(sizes) / 1024,
+            "auth_KB_per_farm_round": sum(sizes) / 1024 / farms / rounds,
+            "mldsa_verifications": len(count_file.read_text().splitlines()), "final_acc": acc,
+        }
+        results["session"][name] = r
+        say(f"   {name:<12} {r['requests']:>4} requests, {r['auth_KB_per_farm_round']:7.1f} KB auth traffic per farm "
+            f"per round, {r['mldsa_verifications']:>3} ML-DSA verifications, accuracy {acc:.3f}")
+    a, b = results["session"]["per-request"], results["session"]["session"]
+    say(f"   session login cuts auth traffic {a['auth_KB_per_farm_round'] / b['auth_KB_per_farm_round']:.0f}x "
+        f"(classical ECDSA login: ~{results.get('requests', {}).get('ECDSA P-384_KB_per_farm_round', 18.8):.1f} KB)")
+    say()
+
+
 def main() -> None:
     say(f"PQC cost benchmark, {results['date']} ({results['machine']}, Python {sys.version.split()[0]})")
     say()
+    if "--only-session" in sys.argv:
+        bench_session()
+        out = ROOT / "results" / f"pqc_session_{results['date']}"
+        out.with_suffix(".txt").write_text("\n".join(lines) + "\n")
+        out.with_suffix(".json").write_text(json.dumps(results, indent=2) + "\n")
+        print(f"saved {out}.txt / .json")
+        return
     bench_login()
     bench_updates()
     if "--skip-live" not in sys.argv:
         bench_tls()
         bench_requests()
+        bench_session()
     out = ROOT / "results" / f"pqc_costs_{results['date']}"
     out.with_suffix(".txt").write_text("\n".join(lines) + "\n")
     out.with_suffix(".json").write_text(json.dumps(results, indent=2) + "\n")
