@@ -2,10 +2,23 @@
 
 from flwr.app import ArrayRecord, ConfigRecord, Context, Message, MetricRecord, RecordDict
 from flwr.clientapp import ClientApp
+from flwr.client.mod import secaggplus_mod
+from flwr.common import Code, FitRes, Status, ndarrays_to_parameters, parameters_to_ndarrays
+from flwr.common.secure_aggregation.secaggplus_constants import RECORD_KEY_CONFIGS
+from flwr.compat.common import recorddict_compat as compat
 
-from pqcflower import signing, task
+from pqcflower import secagg_pq, signing, task
 
-app = ClientApp()
+
+def secure_aggregation_mod(msg: Message, context: Context, call_next) -> Message:
+    """Route SecAgg+ messages to Flower's mod ("ecdh") or the ML-KEM one ("mlkem")."""
+    if RECORD_KEY_CONFIGS not in msg.content.config_records:
+        return call_next(msg, context)
+    mod = secagg_pq.pq_secaggplus_mod if context.run_config["secure-aggregation"] == "mlkem" else secaggplus_mod
+    return mod(msg, context, call_next)
+
+
+app = ClientApp(mods=[secure_aggregation_mod])
 
 
 def _farm_data(context: Context):
@@ -16,8 +29,24 @@ def _farm_data(context: Context):
     )
 
 
+def _train_legacy(msg: Message, context: Context) -> Message:
+    """Training step inside SecAgg+, which still speaks Flower's legacy FitIns/FitRes format."""
+    (x, y), _ = _farm_data(context)
+    fitins = compat.recorddict_to_fitins(msg.content, keep_input=True)
+    model = task.train(
+        parameters_to_ndarrays(fitins.parameters), x, y,
+        epochs=int(context.run_config["local-epochs"]),
+        lr=float(context.run_config["learning-rate"]),
+    )
+    loss, acc = task.evaluate(model, x, y)
+    fitres = FitRes(Status(Code.OK, ""), ndarrays_to_parameters(model), len(y), {"train_loss": loss, "train_acc": acc})
+    return Message(content=compat.fitres_to_recorddict(fitres, keep_input=False), reply_to=msg)
+
+
 @app.train()
 def train(msg: Message, context: Context) -> Message:
+    if "arrays" not in msg.content.array_records:
+        return _train_legacy(msg, context)
     (x, y), _ = _farm_data(context)
     model = msg.content["arrays"].to_numpy_ndarrays()
     model = task.train(
