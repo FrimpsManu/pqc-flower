@@ -228,6 +228,49 @@ scripts/demo_attack3.sh 4    # unsigned, then signed (previous round), then sign
 `explore/session_probe.py` now also sends the same session request twice and the same full ML-DSA
 login twice; both second copies are rejected.
 
+## Post-quantum secure aggregation: SecAgg+ with ML-KEM-768 (2026-11-08)
+
+Secure aggregation hides each farm's model update from the server: farms add random masks that
+cancel only in the sum. Flower's SecAgg+ builds those masks, and the keys that protect the secret
+shares between farms, with ECDH P-384, which Shor's algorithm breaks. `secure-aggregation = "mlkem"`
+runs our version (`pqcflower/secagg_pq.py`); `"ecdh"` runs Flower's own.
+
+ECDH lets two farms compute a shared secret without messaging each other; ML-KEM does not (one side
+encapsulates, the other must receive the ciphertext). Our version keeps Flower's four stages and
+puts the KEM ciphertexts into the messages the server already forwards:
+
+- **Shares between farms:** encrypted with a key from an ML-KEM encapsulation to the neighbour.
+- **Pairwise mask seeds:** the farm with the lower id creates the seed from its own secret master
+  and sends it to the other farm inside a second encapsulation.
+- **Dropouts:** what each farm secret-shares for recovery is its decapsulation seed plus that
+  master, so the server can rebuild every mask of a farm that drops out (from the master, or by
+  decapsulating the stored capsule), revealing no more than Flower does with ECDH.
+- **Mask generator:** Flower's `pseudo_rand_gen` XOR-folds the 32-byte seed into 32 bits, so every
+  mask is one of 2^32. We seed the generator with the full seed.
+
+Checked with `benchmarks/secagg_costs.py` (real Flower workflow and farm code, in one process) and
+live runs (`results/secagg_costs_2026-11-08.txt`):
+
+| | Flower SecAgg+ (ECDH) | Our SecAgg+ (ML-KEM-768) |
+|---|---|---|
+| Aggregate vs plain weighted average, 5 farms | equal (6e-5, quantization) | equal (5e-5) |
+| Same, one farm drops out after sharing keys | equal | equal (its masks rebuilt) |
+| Live, 3 farms, 15 rounds: accuracy / mean round | 90.7% / 19.0 s | 90.5% / 17.0 s |
+| SecAgg+ traffic per farm per round, 3 / 20 farms (sent + received) | 6.0 / 34.3 KB | 19.2 / 127.8 KB |
+| Key-sharing stage per farm, 3 / 20 farms | 1.4 / 19.3 ms | 0.6 / 8.0 ms |
+| Mask seed space | 2^32 | full 256-bit seed |
+
+ML-KEM costs about 3–4× more SecAgg+ bytes (1,184-byte public keys, 1,088-byte ciphertexts) but is
+faster than ECDH. Secure aggregation itself roughly doubles the round time in both versions
+(about 10 s → 17–19 s), because each round needs four exchanges with the farms instead of one.
+With secure aggregation the server never sees a single update, so update signatures (Attack 1/3
+protection) are off in that mode.
+
+```bash
+scripts/run_local.sh pqc-session 3 15 'secure-aggregation="mlkem"'   # or "ecdh"
+.venv/bin/python benchmarks/secagg_costs.py
+```
+
 ## Setup and run
 
 ```bash
@@ -248,7 +291,7 @@ PQC_CONTROL_PORT=8001 scripts/run_local.sh classical 3 15   # if another app alr
 - [x] Settle the gRPC client group question: hybrid X25519MLKEM768 is already negotiated
 - [ ] Decide the classical reference for TLS (pin an older grpcio for a true classical X25519 baseline?)
 - [x] Swap node auth ECDSA → ML-DSA (`pqc` mode)
-- [ ] Swap SecAgg+ ECDH → ML-KEM
+- [x] Swap SecAgg+ ECDH → ML-KEM (`secure-aggregation = "mlkem"`, `pqcflower/secagg_pq.py`)
 - [x] Sign model updates with ML-DSA; demo a tampered update being rejected (Attack 1)
 - [x] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
 - [x] Measure login, signing and handshake cost, classical vs PQC (`benchmarks/pqc_costs.py`)
@@ -259,7 +302,7 @@ PQC_CONTROL_PORT=8001 scripts/run_local.sh classical 3 15   # if another app alr
 ## Prototype dashboard (2026-10-22)
 
 A local web page that drives the real system: pick the security mode (including session login),
-sign updates on or off, switch Attack 1 or Attack 3 on, and watch the shared model's accuracy and the server's decision on every farm
+sign updates on or off, switch Attack 1 or Attack 3 on, turn on secure aggregation (ECDH or ML-KEM), and watch the shared model's accuracy and the server's decision on every farm
 update, round by round. Attack 2 runs from two buttons (ECDSA login vs ML-DSA login), and the
 measured PQC costs are shown alongside.
 
