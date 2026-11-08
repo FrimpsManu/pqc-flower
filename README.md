@@ -246,7 +246,7 @@ PQC_CONTROL_PORT=8001 scripts/run_local.sh classical 3 15   # if another app alr
 - [x] Run a baseline Flower deployment with several farms (classical, no TLS yet)
 - [x] Add classical TLS + node auth to the baseline (the real "before" for comparison)
 - [x] Settle the gRPC client group question: hybrid X25519MLKEM768 is already negotiated
-- [ ] Decide the classical reference for TLS (pin an older grpcio for a true classical X25519 baseline?)
+- [x] Classical reference for TLS: measured directly (openssl client, X25519 vs X25519MLKEM768 against our SuperLink, `benchmarks/pqc_costs.py` C): +2,267 B per handshake, no measurable time; no older grpcio needed
 - [x] Swap node auth ECDSA → ML-DSA (`pqc` mode)
 - [ ] Swap SecAgg+ ECDH → ML-KEM
 - [x] Sign model updates with ML-DSA; demo a tampered update being rejected (Attack 1)
