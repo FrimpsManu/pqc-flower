@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 HERE = Path(__file__).resolve().parent
 PORT = int(os.environ.get("DASHBOARD_PORT", "8765"))
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
-MODES = {"insecure", "classical", "pqc"}
+MODES = {"insecure", "classical", "pqc", "pqc-session"}
 
 job = {"id": 0, "kind": None, "lines": [], "running": False, "exit": None, "proc": None}
 lock = threading.Lock()
@@ -39,11 +39,14 @@ def start(spec: dict) -> dict:
     if kind == "train":
         rounds = max(1, min(int(spec.get("rounds", 8)), 30))
         signed = "true" if spec.get("signed") else "false"
-        attack = "0" if spec.get("attack") else "-1"
+        attack = spec.get("attack") or ""
+        if attack not in ("", "tamper", "replay"):
+            return {"error": f"unknown attack {attack}"}
+        tamper, replay = ("0" if attack == "tamper" else "-1"), ("0" if attack == "replay" else "-1")
         cmd = [str(ROOT / "scripts/run_local.sh"), mode, "3", str(rounds),
-               f"sign-updates={signed} attack-farm={attack}"]
+               f"sign-updates={signed} attack-farm={tamper} replay-farm={replay}"]
     elif kind == "attack2":
-        if mode == "insecure":
+        if mode not in ("classical", "pqc"):
             return {"error": "Attack 2 needs farm login (classical or pqc)"}
         cmd = [str(HERE / "attack2_once.sh"), mode]
     else:

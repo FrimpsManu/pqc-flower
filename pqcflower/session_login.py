@@ -15,6 +15,11 @@ attackers (Grover only halves it). The session is bound to the public key that p
 check, and Flower's node-ID check still runs on every request. The MAC covers the RPC method, so a
 captured tag cannot be reused for a different call.
 
+Replay window: Flower accepts a login for MAX_TIMESTAMP_DIFF (305 s) after its timestamp, so a
+recorded request could be sent again inside that window. The SuperLink remembers every session MAC
+and every full-login signature it accepted until its timestamp leaves the window, and refuses a
+second copy.
+
 Sessions expire after SESSION_TTL seconds and do not survive a SuperLink restart; in both cases
 the server answers UNAUTHENTICATED and the farm logs in again with ML-DSA, once.
 """
@@ -114,6 +119,28 @@ class SessionClientInterceptor(NodeAuthClientInterceptor):
 
 # --- SuperLink (server) side ---------------------------------------------------------------------
 
+class ReplayGuard:
+    """Tags seen within the timestamp window; a tag seen twice is a replayed request."""
+
+    def __init__(self, window: float = MAX_TIMESTAMP_DIFF):
+        self._window = window
+        self._seen: dict[bytes, float] = {}  # SHA-256 of the tag -> forget after (monotonic time)
+        self._lock = threading.Lock()
+
+    def first_use(self, tag: bytes) -> bool:
+        """Record the tag; False if it was already used inside the window."""
+        digest = hashlib.sha256(tag).digest()
+        t = time.monotonic()
+        with self._lock:
+            # Entries are kept in insertion order, so the oldest expire first.
+            while self._seen and next(iter(self._seen.values())) <= t:
+                del self._seen[next(iter(self._seen))]
+            if digest in self._seen:
+                return False
+            self._seen[digest] = t + self._window
+            return True
+
+
 class SessionServerInterceptor(NodeAuthServerInterceptor):
     """Accepts Flower's full login (and then issues a session) or a valid session MAC."""
 
@@ -122,6 +149,8 @@ class SessionServerInterceptor(NodeAuthServerInterceptor):
         self._sessions: dict[bytes, tuple[bytes, bytes, float]] = {}  # id -> (key, public key, expiry)
         self._by_public_key: dict[bytes, bytes] = {}  # public key -> its current session id
         self._lock = threading.Lock()
+        self._replays = ReplayGuard()
+        self._login_ok = threading.local()  # set by _wrap_method_handler when a full login passes
 
     def intercept_service(self, continuation, handler_call_details):
         if not handler_call_details.method.startswith("/flwr.proto.Fleet/"):
@@ -130,7 +159,12 @@ class SessionServerInterceptor(NodeAuthServerInterceptor):
         session_id = get_metadata_bytes(metadata, SESSION_ID_HEADER)
         if not session_id:
             # Flower's full login; on success it calls _wrap_method_handler, which issues a session.
-            return super().intercept_service(continuation, handler_call_details)
+            self._login_ok.value = False
+            handler = super().intercept_service(continuation, handler_call_details)
+            signature = get_metadata_bytes(metadata, SIGNATURE_HEADER)
+            if self._login_ok.value and signature and not self._replays.first_use(b"login" + signature):
+                return _unary_unary_rpc_terminator("Replayed login")
+            return handler
 
         timestamp_iso = get_metadata_str(metadata, TIMESTAMP_HEADER)
         mac = get_metadata_bytes(metadata, SESSION_MAC_HEADER)
@@ -153,11 +187,14 @@ class SessionServerInterceptor(NodeAuthServerInterceptor):
             return _unary_unary_rpc_terminator("Invalid timestamp")
         if not MIN_TIMESTAMP_DIFF < age < MAX_TIMESTAMP_DIFF:
             return _unary_unary_rpc_terminator("Invalid timestamp")
+        if not self._replays.first_use(b"session" + mac):
+            return _unary_unary_rpc_terminator("Replayed request")
         # Same node-ID check as a full login, against the public key the session was issued to.
         return super()._wrap_method_handler(continuation(handler_call_details), public_key_bytes)
 
     def _wrap_method_handler(self, method_handler, received_public_key):
         """Called by Flower's intercept_service after a valid full login: also issue a session."""
+        self._login_ok.value = True
         inner = super()._wrap_method_handler(method_handler, received_public_key)
 
         def handler(request, context):

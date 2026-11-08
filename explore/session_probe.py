@@ -3,12 +3,15 @@
 Logs in as farm 0 once with ML-DSA-65 (ActivateNode), takes the session the SuperLink issues,
 then sends SendNodeHeartbeat with correct and tampered session headers and prints the answers:
   valid session          correct session ID and MAC                       -> OK
+  replayed request       the exact same headers sent a second time        -> rejected
   wrong MAC              MAC computed with a different key                 -> rejected
   unknown session        random session ID                                 -> rejected
   MAC for another call   valid tag computed for a different RPC method     -> rejected
   old timestamp          valid MAC over a timestamp 10 minutes old         -> rejected
   other node ID          farm 0's valid session, request for another node  -> rejected
   forged full login      farm 0's public key, attacker's ML-DSA signature  -> rejected, no session
+  full login             a fresh, genuine ML-DSA login                     -> OK, new session
+  replayed full login    the same login headers sent a second time         -> rejected
 
 Usage: session_probe.py FARM0_PRIVATE_PEM CA_CERT [ADDRESS]
 Start the server with: SERVER_ONLY=1 scripts/run_local.sh pqc-session 3 1
@@ -85,7 +88,9 @@ def session_headers(sid=session_id, k=key, method=HEARTBEAT, timestamp=None):
 
 
 old = (now() - datetime.timedelta(minutes=10)).isoformat()
-call("valid session", session_headers())
+valid = session_headers()
+call("valid session", valid)
+call("replayed request", valid)
 call("wrong MAC", session_headers(k=secrets.token_bytes(32)))
 call("unknown session", session_headers(sid=secrets.token_bytes(16)))
 call("MAC for another call", session_headers(method="/flwr.proto.Fleet/PushMessages"))
@@ -93,3 +98,6 @@ call("old timestamp", session_headers(timestamp=old))
 call("other node ID", session_headers(),
      SendNodeHeartbeatRequest(node=Node(node_id=node_id + 1), heartbeat_interval=30))
 call("forged full login", full_login(mldsa.MLDSA65PrivateKey.generate()))
+login = full_login(farm0_key)
+call("full login", login)
+call("replayed full login", login)
