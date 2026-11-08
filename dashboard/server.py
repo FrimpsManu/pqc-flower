@@ -43,8 +43,11 @@ def start(spec: dict) -> dict:
         if attack not in ("", "tamper", "replay"):
             return {"error": f"unknown attack {attack}"}
         tamper, replay = ("0" if attack == "tamper" else "-1"), ("0" if attack == "replay" else "-1")
+        secagg = spec.get("secagg") or "off"
+        if secagg not in ("off", "ecdh", "mlkem"):
+            return {"error": f"unknown secure aggregation {secagg}"}
         cmd = [str(ROOT / "scripts/run_local.sh"), mode, "3", str(rounds),
-               f"sign-updates={signed} attack-farm={tamper} replay-farm={replay}"]
+               f'sign-updates={signed} attack-farm={tamper} replay-farm={replay} secure-aggregation="{secagg}"']
     elif kind == "attack2":
         if mode not in ("classical", "pqc"):
             return {"error": "Attack 2 needs farm login (classical or pqc)"}

@@ -1,0 +1,24 @@
+SecAgg+ benchmark: ECDH (Flower) vs ML-KEM-768 (ours), 2026-11-08 (arm64, Python 3.12.15)
+
+1. Correctness: SecAgg+ aggregate vs plain weighted average (max absolute difference)
+   ecdh, 5 farms, all present                       6.48e-05  OK
+   ecdh, 5 farms, 1 farm drops after sharing keys   5.82e-05  OK
+   mlkem, 5 farms, all present                      5.38e-05  OK
+   mlkem, 5 farms, 1 farm drops after sharing keys  5.06e-05  OK
+
+2. Cost per farm per round (one in-process round; bytes of SecAgg+ payload, median farm)
+   farms  mode    sent KB  received KB  setup ms  share keys ms  unmask ms
+       3  ecdh        3.5          2.5       0.2            1.4        0.1
+       3  mlkem       8.2         11.0       0.4            0.6        0.1
+       5  ecdh        4.8          4.5       0.2            2.2        0.1
+       5  mlkem      12.4         19.6       0.3            0.9        0.1
+      10  ecdh        8.1          9.6       0.2            6.3        0.1
+      10  mlkem      22.7         41.2       0.3            2.5        0.1
+      20  ecdh       14.5         19.8       0.2           19.3        0.1
+      20  mlkem      43.3         84.5       0.3            8.0        0.1
+   (sent includes the masked model update, the same size in both modes)
+
+3. Mask seed space
+   Flower pseudo_rand_gen: XOR-folds the 32-byte seed to 32 bits -> 2^32 possible masks
+   two different seeds, same Flower mask: True;  same mask with prg(): False
+

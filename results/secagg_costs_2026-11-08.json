@@ -1,0 +1,104 @@
+{
+  "date": "2026-11-08",
+  "correctness": {
+    "ecdh, 5 farms, all present": 6.479913178852881e-05,
+    "ecdh, 5 farms, 1 farm drops after sharing keys": 5.818270219977266e-05,
+    "mlkem, 5 farms, all present": 5.376084973640616e-05,
+    "mlkem, 5 farms, 1 farm drops after sharing keys": 5.062506180485843e-05
+  },
+  "costs": {
+    "ecdh/3": {
+      "sent_KB": 3.525390625,
+      "received_KB": 2.455078125,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.18104095943272114,
+        "share_keys": 1.411583973094821,
+        "collect_masked_vectors": 5.793208023533225,
+        "unmask": 0.06462505552917719
+      }
+    },
+    "mlkem/3": {
+      "sent_KB": 8.25,
+      "received_KB": 10.96484375,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.3643330419436097,
+        "share_keys": 0.6083330372348428,
+        "collect_masked_vectors": 5.328500061295927,
+        "unmask": 0.06116705480962992
+      }
+    },
+    "ecdh/5": {
+      "sent_KB": 4.822265625,
+      "received_KB": 4.490234375,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.18291594460606575,
+        "share_keys": 2.1663339575752616,
+        "collect_masked_vectors": 4.15675004478544,
+        "unmask": 0.05979102570563555
+      }
+    },
+    "mlkem/5": {
+      "sent_KB": 12.37890625,
+      "received_KB": 19.6171875,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.2767500700429082,
+        "share_keys": 0.911500072106719,
+        "collect_masked_vectors": 3.531083930283785,
+        "unmask": 0.06520806346088648
+      }
+    },
+    "ecdh/10": {
+      "sent_KB": 8.064453125,
+      "received_KB": 9.578125,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.17877097707241774,
+        "share_keys": 6.29116699565202,
+        "collect_masked_vectors": 4.1771664982661605,
+        "unmask": 0.06224954267963767
+      }
+    },
+    "mlkem/10": {
+      "sent_KB": 22.701171875,
+      "received_KB": 41.248046875,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.2745419624261558,
+        "share_keys": 2.47622950701043,
+        "collect_masked_vectors": 2.6167085161432624,
+        "unmask": 0.06585399387404323
+      }
+    },
+    "ecdh/20": {
+      "sent_KB": 14.548828125,
+      "received_KB": 19.75390625,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.18710404401645064,
+        "share_keys": 19.271146040409803,
+        "collect_masked_vectors": 6.033603975083679,
+        "unmask": 0.06458302959799767
+      }
+    },
+    "mlkem/20": {
+      "sent_KB": 43.345703125,
+      "received_KB": 84.509765625,
+      "masked_vector_KB": 1.7578125,
+      "ms": {
+        "setup": 0.2731870044954121,
+        "share_keys": 8.022541063837707,
+        "collect_masked_vectors": 2.7664375375024974,
+        "unmask": 0.06966653745621443
+      }
+    }
+  },
+  "seed_space": {
+    "flower_bits": 32,
+    "flower_collision": true,
+    "ours_collision": false
+  }
+}
