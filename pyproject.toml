@@ -39,6 +39,7 @@ learning-rate = 1.0
 dirichlet-alpha = 0.5
 sign-updates = false   # farms sign each model update with ML-DSA-65; server verifies
 attack-farm = -1       # simulated attacker tampers this farm's update in transit (-1 = no attack)
+replay-farm = -1       # simulated attacker replays this farm's earlier recorded update (-1 = no attack)
 
 [dependency-groups]
 # Benchmarks only: the charts in benchmarks/scaling.py

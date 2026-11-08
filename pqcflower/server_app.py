@@ -15,10 +15,13 @@ app = ServerApp()
 class SignedFedAvg(FedAvg):
     """FedAvg that only aggregates updates carrying a valid ML-DSA signature from their farm."""
 
-    def __init__(self, *, sign_updates: bool, attack_farm: int, num_farms: int, **kwargs):
+    def __init__(self, *, sign_updates: bool, attack_farm: int, replay_farm: int, num_farms: int, run_id: int,
+                 **kwargs):
         super().__init__(**kwargs)
         self.sign_updates = sign_updates
         self.attack_farm = attack_farm  # -1: no attack
+        self.replay_farm = replay_farm  # -1: no attack
+        self.run_id = run_id
         self.public_keys = signing.load_public_keys(num_farms) if sign_updates else {}
 
     def aggregate_train(self, server_round: int, replies: Iterable[Message]):
@@ -28,24 +31,28 @@ class SignedFedAvg(FedAvg):
                 accepted.append(msg)  # FedAvg logs and skips error replies itself
                 continue
             farm_id = int(msg.content["auth"]["farm-id"])
-            tampered = farm_id == self.attack_farm
-            if tampered:
+            note = ""
+            if farm_id == self.attack_farm:
                 attack.tamper(msg)
+                note = "  <- TAMPERED"
+            if farm_id == self.replay_farm:
+                source = attack.replay(msg, farm_id, server_round, self.run_id)
+                note = f"  <- REPLAYED update {source}" if source else ""
             if not self.sign_updates:
-                note = "  <- TAMPERED, accepted (no signature check)" if tampered else ""
+                note = f"{note}, accepted (no signature check)" if note else ""
                 print(f"[round {server_round:>2}] farm {farm_id}: accepted, unsigned{note}")
                 accepted.append(msg)
                 continue
             signature = msg.content["auth"].get("signature")
             valid = signature is not None and signing.verify_update(
-                self.public_keys[farm_id], signature, server_round, farm_id,
+                self.public_keys[farm_id], signature, self.run_id, server_round, farm_id,
                 msg.content["arrays"].to_numpy_ndarrays(),
             )
             if valid:
-                print(f"[round {server_round:>2}] farm {farm_id}: ML-DSA signature valid, accepted")
+                print(f"[round {server_round:>2}] farm {farm_id}: ML-DSA signature valid, accepted{note}")
                 accepted.append(msg)
             else:
-                print(f"[round {server_round:>2}] farm {farm_id}: ML-DSA signature INVALID, REJECTED")
+                print(f"[round {server_round:>2}] farm {farm_id}: ML-DSA signature INVALID, REJECTED{note}")
         return super().aggregate_train(server_round, accepted)
 
 
@@ -54,10 +61,13 @@ def main(grid: Grid, context: Context) -> None:
     num_farms = int(context.run_config["num-farms"])
     sign_updates = bool(context.run_config["sign-updates"])
     attack_farm = int(context.run_config["attack-farm"])
+    replay_farm = int(context.run_config["replay-farm"])
     x_test, y_test = task.load_test()
     round_start = {"t": time.perf_counter()}
-    print(f"[setup] farms={num_farms} sign-updates={sign_updates} "
-          f"attack={'tamper farm ' + str(attack_farm) if attack_farm >= 0 else 'none'}")
+    attacks = ([f"tamper farm {attack_farm}"] if attack_farm >= 0 else []) \
+        + ([f"replay farm {replay_farm}"] if replay_farm >= 0 else [])
+    print(f"[setup] run={context.run_id} farms={num_farms} sign-updates={sign_updates} "
+          f"attack={', '.join(attacks) or 'none'}")
 
     def central_eval(server_round: int, arrays: ArrayRecord) -> MetricRecord:
         loss, acc = task.evaluate(arrays.to_numpy_ndarrays(), x_test, y_test)
@@ -69,7 +79,9 @@ def main(grid: Grid, context: Context) -> None:
     strategy = SignedFedAvg(
         sign_updates=sign_updates,
         attack_farm=attack_farm,
+        replay_farm=replay_farm,
         num_farms=num_farms,
+        run_id=context.run_id,
         min_train_nodes=num_farms,
         min_evaluate_nodes=num_farms,
         min_available_nodes=num_farms,

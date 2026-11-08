@@ -1,6 +1,6 @@
 """ML-DSA-65 signatures on model updates (Topic 3: Trustworthy AI with PQC-based authentication).
 
-Each farm signs (round, farm id, model weights) with its own ML-DSA-65 key. The server holds every
+Each farm signs (run id, round, farm id, model weights) with its own ML-DSA-65 key. The server holds every
 farm's public key and drops any update whose signature does not verify, so an update that was
 altered in transit, or forged by someone without the farm's private key, never reaches aggregation.
 """
@@ -14,7 +14,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric import mldsa
 
 KEY_DIR = Path(os.environ.get("PQC_KEY_DIR", Path(__file__).resolve().parent.parent / "credentials" / "pqc-keys"))
-DOMAIN = b"pqcflower/model-update/v1"
+DOMAIN = b"pqcflower/model-update/v2"  # v2 added the run id
 
 
 def generate_farm_keys(num_farms: int, key_dir: Path = KEY_DIR) -> None:
@@ -39,24 +39,28 @@ def load_public_keys(num_farms: int) -> dict[int, mldsa.MLDSA65PublicKey]:
     }
 
 
-def _signed_message(server_round: int, farm_id: int, arrays: list[np.ndarray]) -> bytes:
-    """Everything the signature covers. Round and farm id stop replaying old or other farms' updates."""
-    parts = [DOMAIN, struct.pack(">II", server_round, farm_id)]
+def _signed_message(run_id: int, server_round: int, farm_id: int, arrays: list[np.ndarray]) -> bytes:
+    """Everything the signature covers. Run id, round and farm id stop an update recorded earlier
+    (in another run, another round, or from another farm) from being replayed now."""
+    parts = [DOMAIN, struct.pack(">QII", run_id, server_round, farm_id)]
     for a in arrays:
         a = np.ascontiguousarray(a)
         parts += [a.dtype.str.encode(), struct.pack(f">{a.ndim + 1}I", a.ndim, *a.shape), a.tobytes()]
     return b"".join(parts)
 
 
-def sign_update(key: mldsa.MLDSA65PrivateKey, server_round: int, farm_id: int, arrays: list[np.ndarray]) -> bytes:
-    return key.sign(_signed_message(server_round, farm_id, arrays))
+def sign_update(
+    key: mldsa.MLDSA65PrivateKey, run_id: int, server_round: int, farm_id: int, arrays: list[np.ndarray]
+) -> bytes:
+    return key.sign(_signed_message(run_id, server_round, farm_id, arrays))
 
 
 def verify_update(
-    key: mldsa.MLDSA65PublicKey, signature: bytes, server_round: int, farm_id: int, arrays: list[np.ndarray]
+    key: mldsa.MLDSA65PublicKey, signature: bytes, run_id: int, server_round: int, farm_id: int,
+    arrays: list[np.ndarray],
 ) -> bool:
     try:
-        key.verify(signature, _signed_message(server_round, farm_id, arrays))
+        key.verify(signature, _signed_message(run_id, server_round, farm_id, arrays))
         return True
     except InvalidSignature:
         return False

@@ -29,6 +29,7 @@ export FLWR_HOME="$ROOT/.flwr"
 export PQC_DATA_DIR="$ROOT/data"
 export PYTHONUNBUFFERED=1  # ServerApp output reaches the log line by line, so progress shows live
 export PQC_KEY_DIR="$ROOT/credentials/pqc-keys"  # ML-DSA-65 keys for signed model updates
+export PQC_CAPTURE_DIR="$ROOT/logs/captured"  # Attack 3: the attacker's recorded updates, kept across runs
 export PATH="$BIN:$PATH"  # SuperLink/SuperNode spawn flower-superexec by name
 
 rm -rf "$LOGS" "$FLWR_HOME"

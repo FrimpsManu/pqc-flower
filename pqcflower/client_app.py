@@ -34,7 +34,8 @@ def train(msg: Message, context: Context) -> Message:
     auth = ConfigRecord({"farm-id": farm_id})
     if context.run_config["sign-updates"]:
         server_round = int(msg.content["config"]["server-round"])
-        auth["signature"] = signing.sign_update(signing.load_private_key(farm_id), server_round, farm_id, model)
+        auth["signature"] = signing.sign_update(
+            signing.load_private_key(farm_id), context.run_id, server_round, farm_id, model)
     content["auth"] = auth
     return Message(content=content, reply_to=msg)
 

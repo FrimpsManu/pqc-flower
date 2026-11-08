@@ -63,7 +63,7 @@ Flower deployment mode on one laptop: one SuperLink (server) and 3 SuperNodes (f
 
 ## Attack 1 demo: tampered model update (2026-10-15)
 
-Farms can sign every model update with **ML-DSA-65** (`sign-updates = true`). The signature covers the round number, the farm id and the weights. The server (`SignedFedAvg`) drops any update whose signature fails. A simulated attacker (`attack-farm = 0`) alters farm 0's update in transit, flipping and amplifying its weights. It cannot re-sign the update without farm 0's private key.
+Farms can sign every model update with **ML-DSA-65** (`sign-updates = true`). The signature covers the run id, the round number, the farm id and the weights. The server (`SignedFedAvg`) drops any update whose signature fails. A simulated attacker (`attack-farm = 0`) alters farm 0's update in transit, flipping and amplifying its weights. It cannot re-sign the update without farm 0's private key.
 
 All runs use 3 farms, 15 rounds, TLS 1.3 + ECDSA farm login (`results/attack1_*`):
 
@@ -198,6 +198,36 @@ PQC_CONTROL_PORT=8001 .venv/bin/python benchmarks/scaling.py    # ~45 min; resum
 
 ![Login traffic vs number of farms](docs/paper/scaling_login_traffic.png)
 
+## Replay protection and Attack 3 (2026-11-08)
+
+A replay sends a genuine, correctly signed message a second time. Two places allowed it:
+
+- **Model updates.** The update signature covered the round and the farm id, but not the training
+  run. An update recorded in round 3 of one run still carried a valid signature in round 3 of the
+  next run. The signature now also covers the run id (`pqcflower/signing.py`, message format v2).
+- **Farm login.** Flower accepts a signed login for 305 s after its timestamp, so a recorded
+  request could be sent again inside that window. In `pqc-session` mode the SuperLink now remembers
+  every session MAC and full-login signature it accepted until it leaves that window, and refuses
+  a second copy (`ReplayGuard` in `pqcflower/session_login.py`).
+
+**Attack 3** (`replay-farm = 0`, `pqcflower/attack.py`): the simulated attacker records farm 0's
+updates as they pass (kept in `logs/captured/`, so they outlive the run) and swaps each new update
+for an old one with its genuine signature: the same round from an earlier run if it has one,
+otherwise the previous round.
+
+```bash
+scripts/demo_attack3.sh 4    # unsigned, then signed (previous round), then signed (earlier run)
+```
+
+| Run | Farm 0's replayed update |
+|---|---|
+| Unsigned updates (Flower today) | accepted every round |
+| Signed, replay of the previous round | rejected (round does not match) |
+| Signed, replay of the same round from an earlier run | rejected (run id does not match); accepted before this change |
+
+`explore/session_probe.py` now also sends the same session request twice and the same full ML-DSA
+login twice; both second copies are rejected.
+
 ## Setup and run
 
 ```bash
@@ -224,11 +254,12 @@ PQC_CONTROL_PORT=8001 scripts/run_local.sh classical 3 15   # if another app alr
 - [x] Measure login, signing and handshake cost, classical vs PQC (`benchmarks/pqc_costs.py`)
 - [x] Session-based login: one ML-DSA login per session (`pqc-session` mode), 42× less auth traffic
 - [x] Scale to more farms (3 → 20) and chart the results (`benchmarks/scaling.py`)
+- [x] Replay protection: run id in update signatures, replay window on farm login; Attack 3 demo
 
 ## Prototype dashboard (2026-10-22)
 
-A local web page that drives the real system: pick the security mode, sign updates on or off,
-switch Attack 1 on, and watch the shared model's accuracy and the server's decision on every farm
+A local web page that drives the real system: pick the security mode (including session login),
+sign updates on or off, switch Attack 1 or Attack 3 on, and watch the shared model's accuracy and the server's decision on every farm
 update, round by round. Attack 2 runs from two buttons (ECDSA login vs ML-DSA login), and the
 measured PQC costs are shown alongside.
 

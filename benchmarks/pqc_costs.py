@@ -95,9 +95,9 @@ def bench_updates() -> None:
     pub = key.public_key()
     model = task.init_model()
     update_bytes = sum(a.nbytes for a in model)
-    sig = signing.sign_update(key, 1, 0, model)
-    sign_us = median_us(lambda: signing.sign_update(key, 1, 0, model), 500)
-    verify_us = median_us(lambda: signing.verify_update(pub, sig, 1, 0, model), 500)
+    sig = signing.sign_update(key, 1, 1, 0, model)
+    sign_us = median_us(lambda: signing.sign_update(key, 1, 1, 0, model), 500)
+    verify_us = median_us(lambda: signing.verify_update(pub, sig, 1, 1, 0, model), 500)
     results["updates"] = {
         "update_B": update_bytes, "signature_B": len(sig), "sign_us": sign_us, "verify_us": verify_us,
         "overhead_pct": 100 * len(sig) / update_bytes,
@@ -106,7 +106,7 @@ def bench_updates() -> None:
     say(f"   sign {sign_us:.0f} us per farm per round; verify {verify_us:.0f} us per update on the server")
     for mb in (1, 10):
         big = [task.np.zeros(mb * 1024 * 1024 // 8)]
-        t_sign = median_us(lambda: signing.sign_update(key, 1, 0, big), 20)
+        t_sign = median_us(lambda: signing.sign_update(key, 1, 1, 0, big), 20)
         say(f"   for scale, a {mb} MB update: sign {t_sign / 1000:.1f} ms, signature still {len(sig)} B "
             f"(+{100 * len(sig) / (mb * 1024 * 1024):.2f}%)")
         results["updates"][f"sign_ms_{mb}MB"] = t_sign / 1000
