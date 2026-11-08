@@ -163,6 +163,41 @@ rejected, since a session can only be obtained with a valid ML-DSA login.
 post-quantum TLS; HMAC-SHA256 keeps 128-bit security against quantum attackers (Grover's algorithm
 only halves it). The identity check is still ML-DSA, once per session.
 
+## Scaling from 3 to 20 farms (2026-11-08)
+
+`benchmarks/scaling.py` runs the full system with 3, 5, 10 and 20 farms in three modes, 15 rounds
+each, all with TLS 1.3: classical Flower as shipped (ECDSA login, unsigned updates), ML-DSA-65 login
+on every request, and our system (ML-DSA-65 session login). Both post-quantum modes also sign every
+update with ML-DSA-65. Results in `results/scaling_2026-11-08.txt`, charts in `docs/paper/scaling_*.png`.
+
+| Farms | Accuracy (classical / ML-DSA every request / session) | Mean round time | Login traffic per farm per round | ML-DSA login checks (whole run) |
+|---|---|---|---|---|
+| 3 | 90.9% / 90.9% / 90.5% | 9.2 / 9.9 / 9.9 s | 18.9 / 297.7 / **6.0 KB** | 1,685 → **3** |
+| 5 | 81.6% / 83.2% / 81.6% | 10.1 / 10.5 / 11.1 s | 19.0 / 299.7 / **6.1 KB** | 2,828 → **5** |
+| 10 | 85.9% / 86.1% / 86.8% | 11.9 / 11.3 / 11.6 s | 19.1 / 302.0 / **6.1 KB** | 5,698 → **10** |
+| 20 | 83.4% / 83.2% / 82.3% | 12.7 / 13.1 / 13.0 s | 19.5 / 307.5 / **6.2 KB** | 11,604 → **20** |
+
+- **Accuracy:** post-quantum security costs no accuracy at any size; the three modes stay within
+  1.6 points of each other. Accuracy changes with the farm count because the same data is split
+  into smaller, more uneven pieces, not because of the security.
+- **Round time:** grows from about 9 s to 13 s from 3 to 20 farms in every mode; the security mode
+  adds well under a second. Rounds are dominated by Flower's scheduling and polling.
+- **Login traffic per farm stays flat** as farms are added (each farm sends about 38 requests per
+  round), so the server's total login traffic grows linearly: at 20 farms, per-request ML-DSA login
+  is about 6 MB per round, classical login 390 KB, and session login 124 KB.
+- **ML-DSA login checks** on the server: one per farm per run with sessions, against about 39 per
+  farm per round without.
+
+Login traffic for the classical and per-request runs is requests × header size (516 B ECDSA,
+8,140 B ML-DSA, from `benchmarks/pqc_costs.py`); the session figure is measured bytes.
+
+```bash
+PQC_CONTROL_PORT=8001 .venv/bin/python benchmarks/scaling.py    # ~45 min; resumes if interrupted
+.venv/bin/python benchmarks/scaling.py --charts-only             # redraw the charts
+```
+
+![Login traffic vs number of farms](docs/paper/scaling_login_traffic.png)
+
 ## Setup and run
 
 ```bash
@@ -172,6 +207,7 @@ scripts/get_data.sh
 scripts/run_local.sh classical 3 15   # TLS + ECDSA login, 3 farms, 15 rounds (or: insecure)
 scripts/run_local.sh pqc 3 15         # TLS + ML-DSA-65 login
 scripts/stop_all.sh                  # stop leftover Flower processes if a run reports busy ports
+PQC_CONTROL_PORT=8001 scripts/run_local.sh classical 3 15   # if another app already uses port 8000
 .venv/bin/python explore/bench_primitives.py
 ```
 
@@ -187,7 +223,7 @@ scripts/stop_all.sh                  # stop leftover Flower processes if a run r
 - [x] Attack 2: simulated quantum attacker (ECDSA key oracle) impersonating a farm
 - [x] Measure login, signing and handshake cost, classical vs PQC (`benchmarks/pqc_costs.py`)
 - [x] Session-based login: one ML-DSA login per session (`pqc-session` mode), 42× less auth traffic
-- [ ] Scale to more farms (3 → 20) and chart the results
+- [x] Scale to more farms (3 → 20) and chart the results (`benchmarks/scaling.py`)
 
 ## Prototype dashboard (2026-10-22)
 

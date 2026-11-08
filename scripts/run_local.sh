@@ -8,6 +8,7 @@
 #          pqc        TLS 1.3 + ML-DSA-65 farm login (pqcflower/pqc_login.py)
 #          pqc-session  as pqc, but one ML-DSA login per session, then session MACs (session_login.py)
 #   SERVER_ONLY=1 (env): start the SuperLink and register farms, but start no farms
+#   PQC_CONTROL_PORT (env): the SuperLink's Control/Runtime HTTP port (default 8000)
 #   extra run-config, e.g. "sign-updates=true attack-farm=0" (see [tool.flwr.app.config] in pyproject.toml)
 set -euo pipefail
 
@@ -17,6 +18,7 @@ MODE="${1:-classical}"
 FARMS="${2:-3}"
 ROUNDS="${3:-15}"
 EXTRA_CONFIG="${4:-}"
+CONTROL_PORT="${PQC_CONTROL_PORT:-8000}"
 LOGS="$ROOT/logs/$MODE${EXTRA_CONFIG:+_$(echo "$EXTRA_CONFIG" | tr " =" "_-")}"
 CERTS="$ROOT/credentials/certs"
 KEYS="$ROOT/credentials/farm-keys"
@@ -67,14 +69,14 @@ cat > "$FLWR_HOME/config.toml" <<EOF
 default = "local"
 
 [superlink.local]
-address = "127.0.0.1:8000"
+address = "127.0.0.1:$CONTROL_PORT"
 $conn_sec
 EOF
 
 # Fail early if another run (or a leftover process) holds our ports; otherwise the SuperLink
 # crashes on startup and the run fails with no clear reason. Checked before the cleanup trap
 # is set, so we never kill processes this script didn't start.
-PORTS=(8000 9092)
+PORTS=("$CONTROL_PORT" 9092)
 for ((i = 0; i < FARMS; i++)); do PORTS+=($((9100 + i))); done
 busy=0
 for port in "${PORTS[@]}"; do
@@ -113,11 +115,11 @@ wait_for_port() {
 }
 
 # Run the apps in this virtualenv: Flower's per-run install would pull cryptography<47 (no ML-DSA).
-"$BIN/$LINK_CMD" "${LINK_SEC[@]}" --disable-runtime-dependency-installation --database "$LOGS/state.db" > "$LOGS/superlink.log" 2>&1 &
+"$BIN/$LINK_CMD" "${LINK_SEC[@]}" --port "$CONTROL_PORT" --disable-runtime-dependency-installation --database "$LOGS/state.db" > "$LOGS/superlink.log" 2>&1 &
 link_pid=$!
 disown "$link_pid"
 pids+=($link_pid)
-wait_for_port 8000 "$link_pid" "$LOGS/superlink.log"
+wait_for_port "$CONTROL_PORT" "$link_pid" "$LOGS/superlink.log"
 wait_for_port 9092 "$link_pid" "$LOGS/superlink.log"
 
 if [[ "$MODE" != insecure ]]; then

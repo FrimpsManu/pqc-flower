@@ -1,0 +1,18 @@
+Scaling: classical Flower vs our PQC system, 15 rounds per run (2026-11-08)
+
+farms  mode         accuracy  round time  login KB/farm/round  ML-DSA verifs
+    3  classical       90.9%        9.2s                 18.9              0
+    3  pqc             90.9%        9.9s                297.7           1685
+    3  pqc-session     90.5%        9.9s                  6.0              3
+    5  classical       81.6%       10.1s                 19.0              0
+    5  pqc             83.2%       10.5s                299.7           2828
+    5  pqc-session     81.6%       11.1s                  6.1              5
+   10  classical       85.9%       11.9s                 19.1              0
+   10  pqc             86.1%       11.3s                302.0           5698
+   10  pqc-session     86.8%       11.6s                  6.1             10
+   20  classical       83.4%       12.7s                 19.5              0
+   20  pqc             83.2%       13.1s                307.5          11604
+   20  pqc-session     82.3%       13.0s                  6.2             20
+
+Requests per farm per round (pqc runs): 3 farms 37.4, 5 farms 37.7, 10 farms 38.0, 20 farms 38.7
+Login header sizes per request: ECDSA 516 B, ML-DSA 8140 B
