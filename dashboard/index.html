@@ -77,6 +77,13 @@
           <option value="replay">Attack 3: replay farm 0's old update</option>
         </select>
       </label>
+      <label>Secure aggregation (hides each farm's update from the server)
+        <select id="secagg">
+          <option value="off" selected>Off</option>
+          <option value="ecdh">SecAgg+ with ECDH (Flower)</option>
+          <option value="mlkem">SecAgg+ with ML-KEM-768 (post-quantum)</option>
+        </select>
+      </label>
       <label>Rounds
         <select id="rounds"><option>5</option><option selected>8</option><option>15</option></select>
       </label>
@@ -135,10 +142,12 @@ const COLORS = ["#24527a", "#b42318", "#1f7a3a", "#9a6700", "#6941c6", "#555"];
 const MODE_NAME = { insecure: "no security", classical: "ECDSA login", pqc: "ML-DSA login",
                     "pqc-session": "ML-DSA session login" };
 const ATTACK_NAME = { tamper: ", Attack 1 on", replay: ", Attack 3 on" };
+const SECAGG_NAME = { ecdh: ", SecAgg+ (ECDH)", mlkem: ", SecAgg+ (ML-KEM)" };
 let series = [];          // {label, color, points: [[round, acc]]}
 let since = 0, jobId = 0, polling = null, current = null, maxRounds = 8;
 
 function label(spec) {
+  if (SECAGG_NAME[spec.secagg]) return MODE_NAME[spec.mode] + SECAGG_NAME[spec.secagg];
   return `${MODE_NAME[spec.mode]}, ${spec.signed ? "signed" : "unsigned"} updates` +
          (ATTACK_NAME[spec.attack] || "");
 }
@@ -185,6 +194,13 @@ function handleTrainLine(line) {
     $("status").textContent = `Round ${m[1]} of ${maxRounds}: accuracy ${(m[2] * 100).toFixed(1)}%`;
     return;
   }
+  m = line.match(/^\[round +(\d+)\] secure aggregation/);
+  if (m) {
+    const row = roundRows[m[1]] || (roundRows[m[1]] = {});
+    row.f0 = row.f1 = row.f2 = "HIDDEN";
+    renderRounds();
+    return;
+  }
   m = line.match(/^\[round +(\d+)\] farm (\d+): (.*)$/);
   if (m) {
     const row = roundRows[m[1]] || (roundRows[m[1]] = {});
@@ -195,6 +211,7 @@ function handleTrainLine(line) {
 
 function cell(text) {
   if (!text) return `<td class="muted">waiting</td>`;
+  if (text === "HIDDEN") return `<td class="ok">masked (server sees only the sum)</td>`;
   if (/REJECTED.*REPLAYED/.test(text)) return `<td class="ok">replay rejected</td>`;
   if (/REJECTED/.test(text)) return `<td class="ok">rejected (bad signature)</td>`;
   if (/TAMPERED/.test(text)) return `<td class="bad">tampered, accepted</td>`;
@@ -280,7 +297,7 @@ async function start(spec) {
 
 $("run").onclick = () => start({
   kind: "train", mode: $("mode").value, signed: $("signed").value === "true",
-  attack: $("attack").value, rounds: +$("rounds").value,
+  attack: $("attack").value, secagg: $("secagg").value, rounds: +$("rounds").value,
 });
 $("a2c").onclick = () => start({ kind: "attack2", mode: "classical" });
 $("a2p").onclick = () => start({ kind: "attack2", mode: "pqc" });
