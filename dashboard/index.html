@@ -38,7 +38,7 @@
   th { font-weight: 600; color: var(--muted); font-size: 12px; }
   td.num { font-variant-numeric: tabular-nums; }
   .ok { color: var(--ok); } .bad { color: var(--bad); font-weight: 600; } .muted { color: var(--muted); }
-  #rounds { max-height: 230px; overflow: auto; }
+  #decisions { max-height: 230px; overflow: auto; }
   #log { height: 170px; overflow: auto; margin: 0; padding: 8px; background: #fafaf8; border: 1px solid var(--line);
          font: 12px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: #333; }
   #a2result { margin-top: 10px; padding: 10px; border-left: 3px solid var(--line); background: #fafaf8; display: none; }
@@ -120,7 +120,7 @@
     <div class="grid2" style="margin-top:18px">
       <section style="margin:0">
         <h2>Server decisions per round</h2>
-        <div id="rounds"><p class="muted">No run yet.</p></div>
+        <div id="decisions"><p class="muted">No run yet.</p></div>
       </section>
       <section style="margin:0">
         <h2>Output</h2>
@@ -229,7 +229,7 @@ function renderRounds() {
     h += `<tr><td>${k}</td>${cell(r.f0)}${cell(r.f1)}${cell(r.f2)}` +
          `<td class="num">${r.acc != null ? (r.acc * 100).toFixed(1) + "%" : ""}</td></tr>`;
   }
-  $("rounds").innerHTML = h + "</table>";
+  $("decisions").innerHTML = h + "</table>";
 }
 
 function handleAttack2(lines, done, exit) {
@@ -281,7 +281,7 @@ async function start(spec) {
   if (spec.kind === "train") {
     maxRounds = spec.rounds;
     for (const k in roundRows) delete roundRows[k];
-    $("rounds").innerHTML = `<p class="muted">Starting server and farms ...</p>`;
+    $("decisions").innerHTML = `<p class="muted">Starting server and farms ...</p>`;
     current.color = COLORS[series.length % COLORS.length];
     series.push(current);
     drawChart();
