@@ -2,8 +2,13 @@
 
 Usage: .venv/bin/python dashboard/server.py   then open http://127.0.0.1:8765
 One job runs at a time; the page polls /api/job for new output lines.
+
+Hosted (Dockerfile): DASHBOARD_HOST=0.0.0.0, PORT set by the host, and DASHBOARD_PASSWORD to require
+HTTP basic auth (any user name) on every request, so only people given the password can start runs.
 """
 
+import base64
+import hmac
 import json
 import os
 import re
@@ -14,7 +19,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 HERE = Path(__file__).resolve().parent
-PORT = int(os.environ.get("DASHBOARD_PORT", "8765"))
+PORT = int(os.environ.get("PORT") or os.environ.get("DASHBOARD_PORT", "8765"))
+HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
+PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 MODES = {"insecure", "classical", "pqc", "pqc-session"}
 
@@ -80,7 +87,24 @@ class Handler(BaseHTTPRequestHandler):
     def _json(self, obj, code: int = 200) -> None:
         self._send(json.dumps(obj).encode(), "application/json", code)
 
+    def _authorized(self) -> bool:
+        if not PASSWORD:
+            return True
+        scheme, _, value = self.headers.get("Authorization", "").partition(" ")
+        try:
+            given = base64.b64decode(value).decode().partition(":")[2] if scheme == "Basic" else ""
+        except ValueError:
+            given = ""
+        if hmac.compare_digest(given.encode(), PASSWORD.encode()):
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="pqc-flower demo"')
+        self.end_headers()
+        return False
+
     def do_GET(self) -> None:
+        if not self._authorized():
+            return
         path, _, query = self.path.partition("?")
         if path == "/":
             self._send((HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
@@ -95,6 +119,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(b"not found", "text/plain", 404)
 
     def do_POST(self) -> None:
+        if not self._authorized():
+            return
         length = int(self.headers.get("Content-Length", 0))
         spec = json.loads(self.rfile.read(length) or b"{}")
         if self.path == "/api/run":
@@ -111,8 +137,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"Dashboard: http://127.0.0.1:{PORT}  (Ctrl+C to quit)")
+    print(f"Dashboard: http://{HOST}:{PORT}  (Ctrl+C to quit)", flush=True)
     try:
-        ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+        ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
     except KeyboardInterrupt:
         stop()

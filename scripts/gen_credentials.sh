@@ -8,6 +8,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FARMS="${1:-3}"
 OPENSSL="${OPENSSL:-/opt/homebrew/opt/openssl@3/bin/openssl}"
+[[ -x "$OPENSSL" ]] || OPENSSL=openssl  # Linux / Docker: the system OpenSSL 3
 CERTS="$ROOT/credentials/certs"
 KEYS="$ROOT/credentials/farm-keys"
 mkdir -p "$CERTS" "$KEYS"

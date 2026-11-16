@@ -1,0 +1,11 @@
+.git
+.venv
+.flwr
+logs
+credentials
+data/*.csv
+**/__pycache__
+demo
+explore
+docs
+overrides.txt
