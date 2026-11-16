@@ -309,3 +309,18 @@ measured PQC costs are shown alongside.
 ```bash
 .venv/bin/python dashboard/server.py     # then open http://127.0.0.1:8765
 ```
+
+### Hosted demo (Docker)
+
+The same dashboard runs in one container: the SuperLink, the three SuperNodes and the attacks all
+start inside it. The image downloads the dataset and makes its own demo credentials (CA, TLS
+certificate, ECDSA and ML-DSA-65 keys). Set `DASHBOARD_PASSWORD` so only people you give it to can
+start runs (HTTP basic auth, any user name).
+
+```bash
+docker build -t pqc-flower .
+docker run -p 8765:8765 -e DASHBOARD_PASSWORD=choose-one pqc-flower   # http://localhost:8765
+```
+
+On a host such as Railway, deploy the Dockerfile and set `DASHBOARD_PASSWORD`; the dashboard listens
+on the `PORT` the host provides.
