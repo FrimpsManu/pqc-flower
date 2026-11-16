@@ -7,6 +7,7 @@ PATTERN="$ROOT/\.venv/bin/(python[0-9.]* .*)?(pqc-)?flower-"
 
 found=$(pgrep -f "$PATTERN" || true)
 if [[ -z "$found" ]]; then
+  pkill -f "tail -n \+1 -f $ROOT/logs/.*/run\.log" 2>/dev/null || true
   [[ "${1:-}" == --quiet ]] || echo "no Flower processes from $ROOT running"
   exit 0
 fi
@@ -14,5 +15,7 @@ fi
 pkill -f "$PATTERN" 2>/dev/null || true
 sleep 2
 pkill -9 -f "$PATTERN" 2>/dev/null || true
+# run_local.sh follows the run log with a detached tail; without this a stopped run never ends.
+pkill -f "tail -n \+1 -f $ROOT/logs/.*/run\.log" 2>/dev/null || true
 [[ "${1:-}" == --quiet ]] || echo "stopped $(echo "$found" | wc -l | tr -d ' ') process(es)"
 exit 0
